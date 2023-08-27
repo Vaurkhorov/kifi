@@ -1,9 +1,5 @@
 mod commands;
 
-
-// use serde::{Serialize, Deserialize};
-
-// use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -17,6 +13,12 @@ struct Cli {
 enum Commands {
     /// initialises a repository
     Init,
+    /// tracks the given file
+    Track {
+        file_name: String,
+    },
+    /// Prints contents of metadata files
+    Debug,
 }
 
 fn main() {
@@ -28,10 +30,14 @@ fn main() {
         Some(Commands::Init) => {
             commands::initialise();
         },
-        None => {},
+        Some(Commands::Track {file_name}) => {
+            commands::track(file_name);
+        },
+        Some(Commands::Debug) => {
+            commands::debug_meta().expect("test");
+        },
+        None => {}
     }
-
-
 
     // Continued program logic goes here...
 }
