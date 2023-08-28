@@ -17,15 +17,14 @@ enum Commands {
     Track {
         file_name: String,
     },
-    /// Prints contents of metadata files
+    #[cfg(debug_assertions)]
+    /// prints contents of metadata files
     Debug,
 }
 
 fn main() {
     let cli = Cli::parse();
 
-    // You can check for the existence of subcommands, and if found use their
-    // matches just as you would the top level cmd
     match &cli.command {
         Some(Commands::Init) => {
             commands::initialise();
@@ -33,11 +32,10 @@ fn main() {
         Some(Commands::Track {file_name}) => {
             commands::track(file_name);
         },
+        #[cfg(debug_assertions)]
         Some(Commands::Debug) => {
             commands::debug_meta().expect("test");
         },
         None => {}
     }
-
-    // Continued program logic goes here...
 }

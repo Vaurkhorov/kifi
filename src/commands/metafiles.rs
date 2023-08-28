@@ -4,17 +4,19 @@ const DIR_SEPARATOR: char = '\\';
 const DIR_SEPARATOR: char = '/';
 
 use serde_derive::{Deserialize, Serialize};
+use std::todo;
 use std::{path::PathBuf, str::FromStr};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
+/// Contains information about the repository as a whole
 pub struct Metadata {
     repo_name: String,
 }
 
 impl Metadata {
     pub fn from_pathbuf(value: PathBuf) -> Self {
-        let path = value.to_str().expect("test"); // TODO Write a better message before replacing all the expects
+        let path = value.to_str().expect("test");
         let name = match path.rfind(DIR_SEPARATOR) {
             Some(i) => {
                 String::from_str(&path[i + 1..]).expect("test2") // Whatever is after the last '/' or '\'
@@ -27,9 +29,12 @@ impl Metadata {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-enum FileStatus {
+pub enum FileStatus {
+    /// These files are not included in snapshots or previews
     Ignored,
+    /// These files are not included in snapshots, but can be added. These show up in previews.
     Untracked,
+    /// These files are included in snapshots, their changes will be tracked and shown during previews.
     Tracked,
 }
 
@@ -40,7 +45,6 @@ struct RepoFile {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileCache {
-    // files: Vec<String>,
     files: HashMap<String, RepoFile>,
 }
 
@@ -54,5 +58,16 @@ impl FileCache {
                 file_name,
                 RepoFile { status: FileStatus::Untracked },
             );
+    }
+    pub fn change_status(&mut self, file: &String, status: FileStatus) {
+        // TODO update cache
+        match self.files.contains_key(file) {
+            true => {
+                self.files.insert(file.to_string(), RepoFile { status });
+            },
+            false => {
+                println!("File {:?} not found.", file);     // Replace this with an error later.
+            },
+        }
     }
 }

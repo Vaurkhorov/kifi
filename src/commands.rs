@@ -14,10 +14,8 @@ const KIFI_FILECACHE: &str = ".kifi/FILECACHE.kifi";
 
 use std::{env::current_dir, todo};
 use std::fs;
-use metafiles::Metadata;
+use metafiles::{Metadata, FileCache, FileStatus};
 use serde_cbor::{to_writer, from_reader};
-
-use self::metafiles::FileCache;
 
 /// Initialises a kifi repo
 pub fn initialise() {
@@ -34,7 +32,8 @@ pub fn initialise() {
     cache_files()
 }
 
-pub fn cache_files() {
+/// Generates a vector of files and stores it
+fn cache_files() {
     let mut file_list = FileCache::new();
 
     if let Ok(files) = fs::read_dir(".") {
@@ -45,6 +44,7 @@ pub fn cache_files() {
     to_writer(tracked_file, &file_list).expect("failed to write to metafile");
 }
 
+/// Loops through files and adds them to the cache vector
 fn get_name_from_fileentries(files: fs::ReadDir, file_list: &mut FileCache) {
     for file in files {
         match file {
@@ -59,6 +59,8 @@ fn get_name_from_fileentries(files: fs::ReadDir, file_list: &mut FileCache) {
     }
 }
 
+#[cfg(debug_assertions)]
+/// Outputs contents of files from the .kifi directory
 pub fn debug_meta() -> Result<(), Box<dyn std::error::Error>> {
     let metadata_file = fs::read(KIFI_META)?;
     let cache_file = fs::read(KIFI_FILECACHE)?;
@@ -72,7 +74,12 @@ pub fn debug_meta() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+/// Changes status of file to FileStatus::Tracked, see `metafiles`
 pub fn track(file_name: &String) {
+    let cache_file = fs::read(KIFI_FILECACHE).expect("could not read cache");
+    let mut cache: FileCache = from_reader(&cache_file[..]).expect("could not parse cache");
+
+    cache.change_status(file_name, FileStatus::Tracked);
     println!("{:?}", file_name);
     todo!();
 }
