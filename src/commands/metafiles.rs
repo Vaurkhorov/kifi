@@ -4,8 +4,8 @@ const DIR_SEPARATOR: char = '\\';
 const DIR_SEPARATOR: char = '/';
 
 use serde_derive::{Deserialize, Serialize};
-use std::{path::PathBuf, str::FromStr};
 use std::collections::HashMap;
+use std::{path::PathBuf, str::FromStr};
 
 #[derive(Debug, Serialize, Deserialize)]
 /// Contains information about the repository as a whole
@@ -49,24 +49,28 @@ pub struct FileCache {
 
 impl FileCache {
     pub fn new() -> Self {
-        FileCache { files: HashMap::new() }
+        FileCache {
+            files: HashMap::new(),
+        }
     }
 
     pub fn add_file(&mut self, file_name: String) {
         self.files.insert(
-                file_name,
-                RepoFile { status: FileStatus::Untracked },
-            );
+            file_name,
+            RepoFile {
+                status: FileStatus::Untracked,
+            },
+        );
     }
     pub fn change_status(&mut self, file: &String, status: FileStatus) {
         // TODO update cache
         match self.files.contains_key(file) {
             true => {
                 self.files.insert(file.to_string(), RepoFile { status });
-            },
+            }
             false => {
-                println!("File {:?} not found.", file);     // Replace this with an error later.
-            },
+                println!("File {:?} not found.", file); // Replace this with an error later.
+            }
         }
     }
 }
