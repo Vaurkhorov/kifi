@@ -1,5 +1,9 @@
 mod commands;
+mod errors;
 
+use std::todo;
+
+use crate::errors::Error;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -14,9 +18,7 @@ enum Commands {
     /// initialises a repository
     Init,
     /// tracks the given file
-    Track {
-        file_name: String,
-    },
+    Track { file_name: String },
     #[cfg(debug_assertions)]
     /// prints contents of metadata files
     Debug,
@@ -25,17 +27,22 @@ enum Commands {
 fn main() {
     let cli = Cli::parse();
 
-    match &cli.command {
-        Some(Commands::Init) => {
-            commands::initialise();
-        },
-        Some(Commands::Track {file_name}) => {
-            commands::track(file_name);
-        },
+    let exit_status: Result<(), Error> = match &cli.command {
+        Some(Commands::Init) => commands::initialise(),
+        Some(Commands::Track { file_name }) => commands::track(file_name),
         #[cfg(debug_assertions)]
-        Some(Commands::Debug) => {
-            commands::debug_meta().expect("test");
-        },
-        None => {}
+        Some(Commands::Debug) => commands::debug_meta(),
+        None => {
+            todo!("implement help");
+        }
+    };
+
+    match exit_status {
+        Ok(_) => (),
+        Err(ref e) => {
+            e.handle();
+        }
     }
+
+    println!("{:?}", exit_status);
 }
