@@ -1,6 +1,10 @@
 mod commands;
+mod errors;
+
+use std::todo;
 
 use clap::{Parser, Subcommand};
+use crate::errors::Error;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -25,17 +29,28 @@ enum Commands {
 fn main() {
     let cli = Cli::parse();
 
-    match &cli.command {
+    let exit_status: Result<(), Error> = match &cli.command {
         Some(Commands::Init) => {
-            commands::initialise();
+            commands::initialise()
         },
         Some(Commands::Track {file_name}) => {
-            commands::track(file_name);
+            commands::track(file_name)
         },
         #[cfg(debug_assertions)]
         Some(Commands::Debug) => {
-            commands::debug_meta().expect("test");
+            commands::debug_meta()
         },
-        None => {}
+        None => {
+            todo!("implement help");
+        }
+    };
+
+    match exit_status {
+        Ok(_) => (),
+        Err(ref e) => {
+            e.handle();
+        },
     }
+
+    println!("{:?}", exit_status);
 }
