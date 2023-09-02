@@ -1,4 +1,5 @@
 mod metafiles;
+mod helpers;
 
 /// Directory containing metadata
 const KIFI_DIR: &str = ".kifi";
@@ -11,11 +12,14 @@ const KIFI_COMMITS: &str = ".kifi/COMMITS.kifi";
 /// File containing paths of all files in the repo's root directory, tracked or otherwise
 const KIFI_FILECACHE: &str = ".kifi/FILECACHE.kifi";
 
+use crate::commands::helpers::create_file_cache;
 use crate::errors::Error;
 use metafiles::{FileCache, FileStatus, Metadata};
 use serde_cbor::{from_reader, to_writer};
 use std::env::current_dir;
 use std::fs;
+
+use self::helpers::snap_file_if_tracked;
 
 /// Initialises a kifi repo
 pub fn initialise() -> Result<(), Error> {
@@ -31,47 +35,7 @@ pub fn initialise() -> Result<(), Error> {
 
     to_writer(metadata_file, &metadata).map_err(Error::CBORWriter)?;
 
-    cache_files()
-}
-
-/// Generates a vector of files and stores it
-fn cache_files() -> Result<(), Error> {
-    let mut file_list = FileCache::new();
-
-    match fs::read_dir(".").map_err(Error::GetCurrentDirectory) {
-        Ok(files) => {
-            get_name_from_fileentries(files, &mut file_list)?;
-        }
-        Err(e) => {
-            return Err(e);
-        }
-    }
-
-    let cache_file =
-        fs::File::create(KIFI_FILECACHE).map_err(Error::CreateFile)?;
-    to_writer(cache_file, &file_list).map_err(Error::CBORWriter)?;
-
-    Ok(())
-}
-
-/// Loops through files and adds them to the cache vector
-fn get_name_from_fileentries(files: fs::ReadDir, file_list: &mut FileCache) -> Result<(), Error> {
-    for file in files {
-        match file {
-            Ok(f) => {
-                let file_str = &f
-                    .file_name()
-                    .into_string()
-                    .map_err(Error::ConvertToString)?;
-                file_list.add_file(file_str.to_string());
-            }
-            Err(e) => {
-                panic!("Error reading directory: {:?}", e);
-            }
-        }
-    }
-
-    Ok(())
+    create_file_cache()
 }
 
 #[cfg(debug_assertions)]
@@ -103,6 +67,37 @@ pub fn track(file_name: &String) -> Result<(), Error> {
     let cache_file =
         fs::File::create(KIFI_FILECACHE).map_err(Error::CreateFile)?;
     to_writer(cache_file, &cache).map_err(Error::CBORWriter)?;
+
+    Ok(())
+}
+
+/// Takes a snapshot
+pub fn snapshot() -> Result<(), Error> {
+    let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
+    let cache: FileCache =
+        from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
+
+    match fs::read_dir(".").map_err(Error::GetCurrentDirectory) {
+        Ok(files) => {
+            for file in files {
+                match file {
+                    Ok(f) => {
+                        let file_name = &f
+                            .file_name()
+                            .into_string()
+                            .map_err(Error::ConvertToString)?;
+                        snap_file_if_tracked(file_name, &cache)?;
+                    }
+                    Err(e) => {
+                        panic!("Error reading directory: {:?}", e);
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            return Err(e);
+        }
+    }
 
     Ok(())
 }

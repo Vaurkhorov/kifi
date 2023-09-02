@@ -62,6 +62,7 @@ impl FileCache {
             },
         );
     }
+
     pub fn change_status(&mut self, file: &String, status: FileStatus) {
         // TODO update cache
         match self.files.contains_key(file) {
@@ -71,6 +72,19 @@ impl FileCache {
             false => {
                 println!("File {:?} not found.", file); // Replace this with an error later.
             }
+        }
+    }
+
+    pub fn has_tracked_file(&self, file_name: &String) -> bool {
+        match self.files.get(file_name) {
+            Some(tracked) => {
+                match tracked.status {
+                    FileStatus::Ignored => false,
+                    FileStatus::Untracked => false,
+                    FileStatus::Tracked => true,
+                }
+            },
+            None => false,
         }
     }
 }
