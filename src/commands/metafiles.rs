@@ -77,12 +77,10 @@ impl FileCache {
 
     pub fn has_tracked_file(&self, file_name: &String) -> bool {
         match self.files.get(file_name) {
-            Some(tracked) => {
-                match tracked.status {
-                    FileStatus::Ignored => false,
-                    FileStatus::Untracked => false,
-                    FileStatus::Tracked => true,
-                }
+            Some(tracked) => match tracked.status {
+                FileStatus::Ignored => false,
+                FileStatus::Untracked => false,
+                FileStatus::Tracked => true,
             },
             None => false,
         }

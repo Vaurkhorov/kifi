@@ -1,5 +1,5 @@
-use crate::commands::KIFI_FILECACHE;
 use crate::commands::FileCache;
+use crate::commands::KIFI_FILECACHE;
 use crate::Error;
 use serde_cbor::to_writer;
 use std::format;
@@ -21,8 +21,7 @@ pub fn create_file_cache() -> Result<(), Error> {
         }
     }
 
-    let cache_file =
-        fs::File::create(KIFI_FILECACHE).map_err(Error::CreateFile)?;
+    let cache_file = fs::File::create(KIFI_FILECACHE).map_err(Error::CreateFile)?;
     to_writer(cache_file, &file_list).map_err(Error::CBORWriter)?;
 
     Ok(())
@@ -53,10 +52,10 @@ pub fn snap_file_if_tracked(file_name: &String, cache: &FileCache) -> Result<(),
 
     fs::create_dir_all(&snap_dir).map_err(Error::CreateDirectory)?;
 
-    if cache.has_tracked_file(&file_name) {
-        match copy(&file_name, format!("{}/{}", &snap_dir, &file_name)) {
+    if cache.has_tracked_file(file_name) {
+        match copy(file_name, format!("{}/{}", &snap_dir, file_name)) {
             Ok(_) => Ok(()),
-            Err(io_error) => Err(Error::FileCopyError(io_error)),
+            Err(io_error) => Err(Error::FileCopy(io_error)),
         }
     } else {
         Ok(())
@@ -78,7 +77,6 @@ fn gen_name() -> String {
 
 // TODO
 // pub fn update_file_cache() -> Result<(), Error> {
-
 
 //     Ok(())
 // }

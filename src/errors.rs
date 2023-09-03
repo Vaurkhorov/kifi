@@ -9,7 +9,7 @@ pub enum Error {
     CBORWriter(serde_cbor::Error),
     CBORReader(serde_cbor::Error),
     ConvertToString(OsString),
-    FileCopyError(ioError),
+    FileCopy(ioError),
 }
 
 impl Error {
@@ -42,9 +42,9 @@ impl Error {
                     os_string
                 );
             }
-            Error::FileCopyError(io_error) => {
+            Error::FileCopy(io_error) => {
                 eprintln!("Failed to copy file: {:?}", io_error);
-            },
+            }
         }
     }
 }

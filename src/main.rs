@@ -47,5 +47,6 @@ fn main() {
         }
     }
 
-    println!("{:?}", exit_status);
+    #[cfg(debug_assertions)]
+    println!("Exit Status: {:?}", exit_status);
 }

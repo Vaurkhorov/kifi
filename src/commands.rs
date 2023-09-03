@@ -1,5 +1,5 @@
-mod metafiles;
 mod helpers;
+mod metafiles;
 
 /// Directory containing metadata
 const KIFI_DIR: &str = ".kifi";
@@ -24,13 +24,11 @@ use self::helpers::snap_file_if_tracked;
 /// Initialises a kifi repo
 pub fn initialise() -> Result<(), Error> {
     fs::create_dir(KIFI_DIR).map_err(Error::CreateDirectory)?;
-    let metadata_file =
-        fs::File::create(KIFI_META).map_err(Error::CreateFile)?;
+    let metadata_file = fs::File::create(KIFI_META).map_err(Error::CreateFile)?;
     fs::File::create(KIFI_TRACKED).map_err(Error::CreateFile)?;
     fs::File::create(KIFI_COMMITS).map_err(Error::CreateFile)?;
 
-    let current_directory_path =
-        current_dir().map_err(Error::GetCurrentDirectory)?;
+    let current_directory_path = current_dir().map_err(Error::GetCurrentDirectory)?;
     let metadata = Metadata::from_pathbuf(current_directory_path);
 
     to_writer(metadata_file, &metadata).map_err(Error::CBORWriter)?;
@@ -44,10 +42,8 @@ pub fn debug_meta() -> Result<(), Error> {
     let metadata_file = fs::read(KIFI_META).map_err(Error::ReadFile)?;
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
 
-    let metadata: Metadata =
-        from_reader(&metadata_file[..]).map_err(Error::CBORReader)?;
-    let cache: FileCache =
-        from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
+    let metadata: Metadata = from_reader(&metadata_file[..]).map_err(Error::CBORReader)?;
+    let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
     println!("{:?}", metadata);
     println!("{:?}", cache);
@@ -58,14 +54,12 @@ pub fn debug_meta() -> Result<(), Error> {
 /// Changes status of file to FileStatus::Tracked, see `metafiles`
 pub fn track(file_name: &String) -> Result<(), Error> {
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
-    let mut cache: FileCache =
-        from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
+    let mut cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
     cache.change_status(file_name, FileStatus::Tracked);
     println!("Tracking {:?}", file_name);
 
-    let cache_file =
-        fs::File::create(KIFI_FILECACHE).map_err(Error::CreateFile)?;
+    let cache_file = fs::File::create(KIFI_FILECACHE).map_err(Error::CreateFile)?;
     to_writer(cache_file, &cache).map_err(Error::CBORWriter)?;
 
     Ok(())
@@ -74,8 +68,7 @@ pub fn track(file_name: &String) -> Result<(), Error> {
 /// Takes a snapshot
 pub fn snapshot() -> Result<(), Error> {
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
-    let cache: FileCache =
-        from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
+    let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
     match fs::read_dir(".").map_err(Error::GetCurrentDirectory) {
         Ok(files) => {
