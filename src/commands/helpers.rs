@@ -5,6 +5,8 @@ use serde_cbor::to_writer;
 use std::format;
 use std::fs;
 use std::fs::copy;
+use std::fs::DirEntry;
+use std::path::PathBuf;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
@@ -32,11 +34,7 @@ fn get_name_from_fileentries(files: fs::ReadDir, file_list: &mut FileCache) -> R
     for file in files {
         match file {
             Ok(f) => {
-                let file_str = &f
-                    .file_name()
-                    .into_string()
-                    .map_err(Error::ConvertToString)?;
-                file_list.add_file(file_str.to_string());
+                read_direntry(f, file_list)?;
             }
             Err(e) => {
                 return Err(Error::ReadFile(e));
@@ -47,18 +45,45 @@ fn get_name_from_fileentries(files: fs::ReadDir, file_list: &mut FileCache) -> R
     Ok(())
 }
 
-pub fn snap_file_if_tracked(file_name: &String, cache: &FileCache) -> Result<(), Error> {
-    let snap_dir = format!(".kifi/{}", gen_name());
-
-    fs::create_dir_all(&snap_dir).map_err(Error::CreateDirectory)?;
-
-    if cache.has_tracked_file(file_name) {
-        match copy(file_name, format!("{}/{}", &snap_dir, file_name)) {
-            Ok(_) => Ok(()),
-            Err(io_error) => Err(Error::FileCopy(io_error)),
+fn read_direntry(f: DirEntry, file_list: &mut FileCache) -> Result<(), Error> {
+    if f.file_type().map_err(Error::ReadFile)?.is_dir() {
+        match fs::read_dir(f.path()).map_err(Error::GetCurrentDirectory) {
+            Ok(files) => {
+                get_name_from_fileentries(files, file_list)?;
+            }
+            Err(e) => {
+                return Err(e);
+            }
         }
     } else {
-        Ok(())
+        let file_str = &f
+            .path()
+            .into_os_string()
+            .into_string()
+            .map_err(Error::ConvertToString)?;
+        file_list.add_file(file_str.to_owned());
+    }
+
+    Ok(())
+}
+
+pub fn snap_file(file_name: &String) -> Result<(), Error> {
+    let snap_dir = format!(".kifi/{}", gen_name());
+    fs::create_dir_all(&snap_dir).map_err(Error::CreateDirectory)?;
+
+    let mut destination_dir = PathBuf::from(file_name);
+    destination_dir = destination_dir
+        .parent()
+        .expect("a path's parent directory should always be atleast './'.")
+        .to_path_buf();
+    fs::create_dir_all(destination_dir).map_err(Error::CreateDirectory)?;
+
+    match copy(file_name, format!("{}/{}", &snap_dir, "main.go")) {
+        Ok(_) => Ok(()),
+        Err(io_error) => {
+            println!("{:#?}", file_name);
+            Err(Error::FileCopy(io_error))
+        }
     }
 }
 
@@ -74,9 +99,3 @@ fn gen_name() -> String {
 
     format!("{}_{}", user, current_timestamp)
 }
-
-// TODO
-// pub fn update_file_cache() -> Result<(), Error> {
-
-//     Ok(())
-// }

@@ -54,29 +54,47 @@ impl FileCache {
         }
     }
 
-    pub fn add_file(&mut self, file_name: String) {
+    pub fn add_file(&mut self, file_path: String) {
         self.files.insert(
-            file_name,
+            file_path,
             RepoFile {
                 status: FileStatus::Untracked,
             },
         );
     }
 
-    pub fn change_status(&mut self, file: &String, status: FileStatus) {
+    pub fn get_keys(&self) -> Vec<&String> {
+        self.files.keys().collect()
+    }
+
+    pub fn get_status(&self, key: &String) -> Option<&FileStatus> {
+        match self.files.get(key) {
+            Some(repo_file) => Some(&repo_file.status),
+            None => None,
+        }
+    }
+
+    pub fn change_status(&mut self, file_path: &String, status: FileStatus) {
         // TODO update cache
-        match self.files.contains_key(file) {
+        match self.files.contains_key(file_path) {
             true => {
-                self.files.insert(file.to_string(), RepoFile { status });
+                self.files
+                    .insert(file_path.to_string(), RepoFile { status });
             }
             false => {
-                println!("File {:?} not found.", file); // Replace this with an error later.
+                println!("File {:?} not found.", file_path); // Replace this with an error later.
             }
         }
     }
 
-    pub fn has_tracked_file(&self, file_name: &String) -> bool {
-        match self.files.get(file_name) {
+    pub fn get_tracked_files(&self) -> Vec<&String> {
+        let mut files = self.get_keys();
+        files.retain(|&k| self.has_tracked_file(k));
+        files
+    }
+
+    pub fn has_tracked_file(&self, file_path: &String) -> bool {
+        match self.files.get(file_path) {
             Some(tracked) => match tracked.status {
                 FileStatus::Ignored => false,
                 FileStatus::Untracked => false,

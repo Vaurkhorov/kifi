@@ -19,7 +19,7 @@ use serde_cbor::{from_reader, to_writer};
 use std::env::current_dir;
 use std::fs;
 
-use self::helpers::snap_file_if_tracked;
+use self::helpers::snap_file;
 
 /// Initialises a kifi repo
 pub fn initialise() -> Result<(), Error> {
@@ -46,18 +46,29 @@ pub fn debug_meta() -> Result<(), Error> {
     let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
     println!("{:?}", metadata);
-    println!("{:?}", cache);
+
+    println!("FileCache {{");
+
+    println!("\tfiles: {{");
+    for file in cache.get_keys() {
+        println!("\t\t{}:", file);
+        println!("\t\t\tStatus: {:?}", cache.get_status(file))
+    }
+    println!("\t}}");
+    println!("}}");
 
     Ok(())
 }
 
 /// Changes status of file to FileStatus::Tracked, see `metafiles`
 pub fn track(file_name: &String) -> Result<(), Error> {
+    let file_path = format!("./{}", file_name);
+
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
     let mut cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
-    cache.change_status(file_name, FileStatus::Tracked);
-    println!("Tracking {:?}", file_name);
+    cache.change_status(&file_path, FileStatus::Tracked);
+    println!("Tracking {:?}", file_path);
 
     let cache_file = fs::File::create(KIFI_FILECACHE).map_err(Error::CreateFile)?;
     to_writer(cache_file, &cache).map_err(Error::CBORWriter)?;
@@ -70,27 +81,32 @@ pub fn snapshot() -> Result<(), Error> {
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
     let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
-    match fs::read_dir(".").map_err(Error::GetCurrentDirectory) {
-        Ok(files) => {
-            for file in files {
-                match file {
-                    Ok(f) => {
-                        let file_name = &f
-                            .file_name()
-                            .into_string()
-                            .map_err(Error::ConvertToString)?;
-                        snap_file_if_tracked(file_name, &cache)?;
-                    }
-                    Err(e) => {
-                        panic!("Error reading directory: {:?}", e);
-                    }
-                }
-            }
-        }
-        Err(e) => {
-            return Err(e);
-        }
+    for file in cache.get_tracked_files() {
+        snap_file(file)?;
     }
+
+    // match fs::read_dir(".").map_err(Error::GetCurrentDirectory) {
+    //     Ok(files) => {
+    //         for file in files {
+    //             match file {
+    //                 Ok(f) => {
+    //                     let file_name = &f
+    //                         .path()
+    //                         .into_os_string()
+    //                         .into_string()
+    //                         .map_err(Error::ConvertToString)?;
+    //                     snap_file_if_tracked(file_name, &cache)?;
+    //                 }
+    //                 Err(e) => {
+    //                     panic!("Error reading directory: {:?}", e);
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     Err(e) => {
+    //         return Err(e);
+    //     }
+    // }
 
     Ok(())
 }
