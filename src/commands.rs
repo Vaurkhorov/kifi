@@ -1,6 +1,10 @@
 mod helpers;
 mod metafiles;
 
+#[cfg(target_os = "windows")]
+const DIR_SEPARATOR: char = '\\';
+#[cfg(not(target_os = "windows"))]
+const DIR_SEPARATOR: char = '/';
 /// Directory containing metadata
 const KIFI_DIR: &str = ".kifi";
 /// File containing metadata about the repository itself
@@ -51,8 +55,10 @@ pub fn debug_meta() -> Result<(), Error> {
 
     println!("\tfiles: {{");
     for file in cache.get_keys() {
-        println!("\t\t{}:", file);
-        println!("\t\t\tStatus: {:?}", cache.get_status(file))
+        println!("\t\t{}", file);
+        let status = cache.get_status(file).expect("Keys were fetched from the cache and immediately used, so the corresponding value should exist.");
+        println!("\t\t\tStatus: {:?}", status);
+        println!();
     }
     println!("\t}}");
     println!("}}");
@@ -62,13 +68,13 @@ pub fn debug_meta() -> Result<(), Error> {
 
 /// Changes status of file to FileStatus::Tracked, see `metafiles`
 pub fn track(file_name: &String) -> Result<(), Error> {
-    let file_path = format!("./{}", file_name);
+    let file_path = format!(".{}{}", DIR_SEPARATOR, file_name);
 
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
     let mut cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
     cache.change_status(&file_path, FileStatus::Tracked);
-    println!("Tracking {:?}", file_path);
+    println!("Tracking {}", file_path);
 
     let cache_file = fs::File::create(KIFI_FILECACHE).map_err(Error::CreateFile)?;
     to_writer(cache_file, &cache).map_err(Error::CBORWriter)?;
@@ -84,29 +90,6 @@ pub fn snapshot() -> Result<(), Error> {
     for file in cache.get_tracked_files() {
         snap_file(file)?;
     }
-
-    // match fs::read_dir(".").map_err(Error::GetCurrentDirectory) {
-    //     Ok(files) => {
-    //         for file in files {
-    //             match file {
-    //                 Ok(f) => {
-    //                     let file_name = &f
-    //                         .path()
-    //                         .into_os_string()
-    //                         .into_string()
-    //                         .map_err(Error::ConvertToString)?;
-    //                     snap_file_if_tracked(file_name, &cache)?;
-    //                 }
-    //                 Err(e) => {
-    //                     panic!("Error reading directory: {:?}", e);
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     Err(e) => {
-    //         return Err(e);
-    //     }
-    // }
 
     Ok(())
 }
