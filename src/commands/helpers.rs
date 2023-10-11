@@ -1,3 +1,8 @@
+#[cfg(target_os = "windows")]
+const DIR_SEPARATOR: char = '\\';
+#[cfg(not(target_os = "windows"))]
+const DIR_SEPARATOR: char = '/';
+
 use crate::commands::FileCache;
 use crate::commands::KIFI_FILECACHE;
 use crate::Error;
@@ -68,7 +73,7 @@ fn read_direntry(f: DirEntry, file_list: &mut FileCache) -> Result<(), Error> {
 }
 
 pub fn snap_file(file_name: &String) -> Result<(), Error> {
-    let snap_dir = format!(".kifi/{}", gen_name());
+    let snap_dir = format!(".kifi{}{}", DIR_SEPARATOR, gen_name());
     fs::create_dir_all(&snap_dir).map_err(Error::CreateDirectory)?;
 
     let mut destination_dir = PathBuf::from(file_name);
@@ -78,7 +83,10 @@ pub fn snap_file(file_name: &String) -> Result<(), Error> {
         .to_path_buf();
     fs::create_dir_all(destination_dir).map_err(Error::CreateDirectory)?;
 
-    match copy(file_name, format!("{}/{}", &snap_dir, "main.go")) {
+    match copy(
+        file_name,
+        format!("{}{}{}", &snap_dir, DIR_SEPARATOR, "main.go"),
+    ) {
         Ok(_) => Ok(()),
         Err(io_error) => {
             println!("{:#?}", file_name);

@@ -1,12 +1,11 @@
 mod commands;
 mod errors;
 
-use std::todo;
-
 use crate::errors::Error;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
+#[command(arg_required_else_help = true)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
     #[command(subcommand)]
@@ -36,17 +35,19 @@ fn main() {
         #[cfg(debug_assertions)]
         Some(Commands::Debug) => commands::debug_meta(),
         None => {
-            todo!("implement help");
+            // This will not execute as long as the flag 'arg_required_else_help' is set to 'true'.
+            Ok(())
         }
     };
 
-    match exit_status {
-        Ok(_) => (),
+    let exit_output = match exit_status {
+        Ok(_) => 0,
         Err(ref e) => {
             e.handle();
+            1
         }
-    }
+    };
 
     #[cfg(debug_assertions)]
-    println!("Exit Status: {:?}", exit_status);
+    println!("Exit Status: {}", exit_output);
 }
