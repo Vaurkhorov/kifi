@@ -6,6 +6,7 @@ const DIR_SEPARATOR: char = '/';
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::{path::PathBuf, str::FromStr};
+use std::time::SystemTime;
 
 #[derive(Debug, Serialize, Deserialize)]
 /// Contains information about the repository as a whole
@@ -101,6 +102,45 @@ impl FileCache {
                 FileStatus::Tracked => true,
             },
             None => false,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+/// Stores a list of snapshots
+pub struct Snapshots {
+    list: Vec<Snapshot>,
+}
+
+impl Snapshots {
+    pub fn new() -> Snapshots {
+        Snapshots { list: Vec::new() }
+    }
+
+    pub fn new_snap(&mut self, name: &String) {
+        let snap = Snapshot::new(name);
+        self.list.insert(0, snap);
+    }
+
+    pub fn get_last(&self) -> &Snapshot {
+        &self.list[0]
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+/// Stores data about individual snapshots
+pub struct Snapshot {
+    name: String,
+    created: SystemTime,
+}
+
+impl Snapshot {
+    fn new(name: &String) -> Snapshot {
+        Snapshot{
+            name: name.to_owned(),
+            created: {
+                SystemTime::now()
+            },
         }
     }
 }

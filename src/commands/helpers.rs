@@ -3,17 +3,13 @@ const DIR_SEPARATOR: char = '\\';
 #[cfg(not(target_os = "windows"))]
 const DIR_SEPARATOR: char = '/';
 
-use crate::commands::FileCache;
-use crate::commands::KIFI_FILECACHE;
+use crate::commands::{FileCache, KIFI_FILECACHE};
 use crate::Error;
 use serde_cbor::to_writer;
 use std::format;
 use std::fs;
-use std::fs::copy;
-use std::fs::DirEntry;
 use std::path::PathBuf;
-use std::time::SystemTime;
-use std::time::UNIX_EPOCH;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Generates a vector of files and stores it
 pub fn create_file_cache() -> Result<(), Error> {
@@ -50,7 +46,7 @@ fn get_name_from_fileentries(files: fs::ReadDir, file_list: &mut FileCache) -> R
     Ok(())
 }
 
-fn read_direntry(f: DirEntry, file_list: &mut FileCache) -> Result<(), Error> {
+fn read_direntry(f: fs::DirEntry, file_list: &mut FileCache) -> Result<(), Error> {
     if f.file_type().map_err(Error::ReadFile)?.is_dir() {
         match fs::read_dir(f.path()).map_err(Error::GetCurrentDirectory) {
             Ok(files) => {
@@ -72,8 +68,7 @@ fn read_direntry(f: DirEntry, file_list: &mut FileCache) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn snap_file(file_name: &String) -> Result<(), Error> {
-    let snap_dir = format!(".kifi{}{}", DIR_SEPARATOR, gen_name());
+pub fn snap_file(file_name: &String, snap_dir: &String) -> Result<(), Error> {
     fs::create_dir_all(&snap_dir).map_err(Error::CreateDirectory)?;
 
     let mut destination_dir = PathBuf::from(file_name);
@@ -83,9 +78,9 @@ pub fn snap_file(file_name: &String) -> Result<(), Error> {
         .to_path_buf();
     fs::create_dir_all(destination_dir).map_err(Error::CreateDirectory)?;
 
-    match copy(
+    match fs::copy(
         file_name,
-        format!("{}{}{}", &snap_dir, DIR_SEPARATOR, "main.go"),
+        format!("{}{}{}", snap_dir, DIR_SEPARATOR, file_name),
     ) {
         Ok(_) => Ok(()),
         Err(io_error) => {
@@ -95,7 +90,7 @@ pub fn snap_file(file_name: &String) -> Result<(), Error> {
     }
 }
 
-fn gen_name() -> String {
+pub fn gen_name() -> String {
     // check username and email, if registered, here
     let user = String::from("testuser");
     // let email = String::from("test@testing.com");

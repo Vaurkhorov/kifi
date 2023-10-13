@@ -12,25 +12,25 @@ const KIFI_META: &str = ".kifi/META.kifi";
 /// File containing paths of currently tracked files
 const KIFI_TRACKED: &str = ".kifi/TRACKED.kifi";
 /// File containing metadata about individual commits
-const KIFI_COMMITS: &str = ".kifi/COMMITS.kifi";
+const KIFI_SNAPS: &str = ".kifi/SNAPSHOTS.kifi";
 /// File containing paths of all files in the repo's root directory, tracked or otherwise
 const KIFI_FILECACHE: &str = ".kifi/FILECACHE.kifi";
 
-use crate::commands::helpers::create_file_cache;
+use crate::commands::helpers::{create_file_cache, gen_name, snap_file};
 use crate::errors::Error;
-use metafiles::{FileCache, FileStatus, Metadata};
+use metafiles::{FileCache, FileStatus, Metadata, Snapshots};
 use serde_cbor::{from_reader, to_writer};
 use std::env::current_dir;
 use std::fs;
-
-use self::helpers::snap_file;
 
 /// Initialises a kifi repo
 pub fn initialise() -> Result<(), Error> {
     fs::create_dir(KIFI_DIR).map_err(Error::CreateDirectory)?;
     let metadata_file = fs::File::create(KIFI_META).map_err(Error::CreateFile)?;
     fs::File::create(KIFI_TRACKED).map_err(Error::CreateFile)?;
-    fs::File::create(KIFI_COMMITS).map_err(Error::CreateFile)?;
+
+    let snapshots_file = fs::File::create(KIFI_SNAPS).map_err(Error::CreateFile)?;
+    to_writer(snapshots_file, &Snapshots::new()).map_err(Error::CBORWriter)?;
 
     let current_directory_path = current_dir().map_err(Error::GetCurrentDirectory)?;
     let metadata = Metadata::from_pathbuf(current_directory_path);
@@ -87,9 +87,19 @@ pub fn snapshot() -> Result<(), Error> {
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
     let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
+    let snapshots_file = fs::read(KIFI_SNAPS).map_err(Error::ReadFile)?;
+    let mut snapshots: Snapshots = from_reader(&snapshots_file[..]).map_err(Error::CBORReader)?;
+
+    let snap_name = gen_name();
+    let snap_dir = format!(".kifi{}{}", DIR_SEPARATOR, snap_name);
+    snapshots.new_snap(&snap_name);
+
     for file in cache.get_tracked_files() {
-        snap_file(file)?;
+        snap_file(file, &snap_dir)?;
     }
+
+    let snapshots_file = fs::File::create(KIFI_SNAPS).map_err(Error::CreateFile)?;
+    to_writer(snapshots_file, &snapshots).map_err(Error::CBORWriter)?;
 
     Ok(())
 }

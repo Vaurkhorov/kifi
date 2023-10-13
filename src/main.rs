@@ -41,7 +41,7 @@ fn main() {
     };
 
     let exit_output = match exit_status {
-        Ok(_) => 0,
+        Ok(()) => 0,
         Err(ref e) => {
             e.handle();
             1
