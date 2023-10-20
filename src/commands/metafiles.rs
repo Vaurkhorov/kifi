@@ -3,6 +3,7 @@ const DIR_SEPARATOR: char = '\\';
 #[cfg(not(target_os = "windows"))]
 const DIR_SEPARATOR: char = '/';
 
+use crate::Error;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::{path::PathBuf, str::FromStr};
@@ -75,16 +76,15 @@ impl FileCache {
         }
     }
 
-    pub fn change_status(&mut self, file_path: &String, status: FileStatus) {
+    pub fn change_status(&mut self, file_path: &String, status: FileStatus) -> Result<(), Error> {
         // TODO update cache
         match self.files.contains_key(file_path) {
             true => {
                 self.files
                     .insert(file_path.to_string(), RepoFile { status });
+                Ok(())
             }
-            false => {
-                println!("File {:?} not found.", file_path); // Replace this with an error later.
-            }
+            false => Err(Error::FileNotFoundInCache(file_path.clone()))
         }
     }
 
@@ -130,8 +130,8 @@ impl Snapshots {
 #[derive(Debug, Serialize, Deserialize)]
 /// Stores data about individual snapshots
 pub struct Snapshot {
-    name: String,
-    created: SystemTime,
+    pub name: String,
+    pub created: SystemTime,
 }
 
 impl Snapshot {

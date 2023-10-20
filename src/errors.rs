@@ -1,4 +1,4 @@
-use std::{ffi::OsString, io::Error as ioError};
+use std::{ffi::OsString, io::Error as ioError, string::FromUtf8Error};
 
 #[derive(Debug)]
 pub enum Error {
@@ -10,6 +10,8 @@ pub enum Error {
     CBORReader(serde_cbor::Error),
     ConvertToString(OsString),
     FileCopy(ioError),
+    UTF8Error(FromUtf8Error),
+    FileNotFoundInCache(String),      // &str is the path to the file
 }
 
 impl Error {
@@ -44,6 +46,18 @@ impl Error {
             }
             Error::FileCopy(io_error) => {
                 eprintln!("Failed to copy file: {:?}", io_error);
+            }
+            Error::UTF8Error(utf8_error) => {
+                eprintln!(
+                    "File being previewed has invalid UTF-8, which is currently unsupported: {:?}",
+                    utf8_error
+                )
+            }
+            Error::FileNotFoundInCache(file_path) => {
+                eprintln!(
+                    "File not found in cache: {:?}",
+                    file_path
+                )
             }
         }
     }

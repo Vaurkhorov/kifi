@@ -18,6 +18,8 @@ enum Commands {
     Init,
     /// tracks the given file
     Track { file_name: String },
+    /// shows diffs from the last snapshot
+    Preview,
     /// takes a snapshot of tracked files
     Klick,
     #[cfg(debug_assertions)]
@@ -31,12 +33,13 @@ fn main() {
     let exit_status: Result<(), Error> = match &cli.command {
         Some(Commands::Init) => commands::initialise(),
         Some(Commands::Track { file_name }) => commands::track(file_name),
+        Some(Commands::Preview) => commands::preview(),
         Some(Commands::Klick) => commands::snapshot(),
         #[cfg(debug_assertions)]
         Some(Commands::Debug) => commands::debug_meta(),
         None => {
             // This will not execute as long as the flag 'arg_required_else_help' is set to 'true'.
-            Ok(())
+            unreachable!();
         }
     };
 
