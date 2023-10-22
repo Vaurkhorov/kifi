@@ -112,12 +112,15 @@ pub fn diffs(file_name: &String, last_snapshot: &Snapshot) -> Result<(), Error> 
     let snapped_file = read_lines(&snapped_file_path)?;
 
     let changes = slice_diff_patch::lcs_diff(&snapped_file, &current_file);
+    if changes.len() == 0 {
+        return Ok(());
+    }
 
     // To debug:
     #[cfg(debug_assertions)]
-    println!("{:?}", &changes);
+    println!("{:?}\n", &changes);
 
-    // Might want to check if there are any differences before calling display_diffs
+    println!("{}", file_name);
     display_diffs(snapped_file, changes)?;
 
     Ok(())
@@ -144,7 +147,6 @@ fn display_diffs(
     let mut line_numbers: Vec<usize> = (1..=snapped_file.len()).collect();
 
     for change in changes {
-        println!();
         match change {
             slice_diff_patch::Change::Remove(index) => {
                 println!("\x1B[91m- {}\t|{}\x1B[0m", line_numbers.remove(index), snapped_file.remove(index));
@@ -175,6 +177,7 @@ fn display_diffs(
                 snapped_file[index] = element;
             }
         }
+        println!();
     }
 
     Ok(())
