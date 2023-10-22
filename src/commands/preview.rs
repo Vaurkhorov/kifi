@@ -4,10 +4,16 @@ use std::fs;
 use std::io::{BufRead, BufReader};
 
 pub fn diffs(file_name: &String, last_snapshot: &Snapshot) -> Result<(), Error> {
-    let current_file = read_lines(file_name)?;
+    let current_file = match read_lines(file_name) {
+        Ok(v) => v,
+        Err(_) => Vec::new(),
+    };
 
     let snapped_file_path = ".kifi\\".to_string() + &last_snapshot.name + "\\" + file_name;
-    let snapped_file = read_lines(&snapped_file_path)?;
+    let snapped_file = match read_lines(&snapped_file_path) {
+        Ok(v) => v,
+        Err(_) => Vec::new(),
+    };
 
     let changes = slice_diff_patch::lcs_diff(&snapped_file, &current_file);
     if changes.is_empty() {
