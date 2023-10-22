@@ -11,7 +11,6 @@ use std::format;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
-use slice_diff_patch;
 
 /// Generates a vector of files and stores it
 pub fn create_file_cache() -> Result<(), Error> {
@@ -71,7 +70,7 @@ fn read_direntry(f: fs::DirEntry, file_list: &mut FileCache) -> Result<(), Error
 }
 
 pub fn snap_file(file_name: &String, snap_dir: &String) -> Result<(), Error> {
-    fs::create_dir_all(&snap_dir).map_err(Error::CreateDirectory)?;
+    fs::create_dir_all(snap_dir).map_err(Error::CreateDirectory)?;
 
     let mut destination_dir = PathBuf::from(file_name);
     destination_dir = destination_dir
@@ -105,8 +104,6 @@ pub fn gen_name() -> String {
     format!("{}_{}", user, current_timestamp)
 }
 
-
-
 pub fn diffs(file_name: &String, last_snapshot: &Snapshot) -> Result<(), Error> {
     let current_file = fs::read(file_name).map_err(Error::ReadFile)?;
 
@@ -132,68 +129,65 @@ enum LastChange {
     None,
 }
 
-fn display_diffs(mut snapped_file: Vec<u8>, changes: Vec<slice_diff_patch::Change<u8>>) -> Result<(), Error> {
+fn display_diffs(
+    mut snapped_file: Vec<u8>,
+    changes: Vec<slice_diff_patch::Change<u8>>,
+) -> Result<(), Error> {
     let mut last_change = LastChange::None;
     let mut plus_line: Vec<u8> = Vec::new();
     let mut minus_line: Vec<u8> = Vec::new();
 
     for change in changes {
         match change {
-            slice_diff_patch::Change::Remove(i) => {
-                match last_change {
-                    LastChange::Remove => {
-                        minus_line.push(snapped_file.remove(i));
-                    },
-                    x => {
-                        print_changes(&x, &plus_line, &minus_line)?;
+            slice_diff_patch::Change::Remove(i) => match last_change {
+                LastChange::Remove => {
+                    minus_line.push(snapped_file.remove(i));
+                }
+                x => {
+                    print_changes(&x, &plus_line, &minus_line)?;
 
-                        plus_line.clear();
-                        minus_line.clear();
-                        
-                        minus_line.push(snapped_file[i]);
-                        snapped_file.remove(i);
-                        last_change = LastChange::Remove;
-                    },
+                    plus_line.clear();
+                    minus_line.clear();
+
+                    minus_line.push(snapped_file[i]);
+                    snapped_file.remove(i);
+                    last_change = LastChange::Remove;
                 }
             },
-            slice_diff_patch::Change::Insert((i, c)) => {
-                match last_change {
-                    LastChange::Insert => {
-                        plus_line.push(c);
-                        snapped_file.insert(i, c);
-                    },
-                    x => {
-                        print_changes(&x, &plus_line, &minus_line)?;
+            slice_diff_patch::Change::Insert((i, c)) => match last_change {
+                LastChange::Insert => {
+                    plus_line.push(c);
+                    snapped_file.insert(i, c);
+                }
+                x => {
+                    print_changes(&x, &plus_line, &minus_line)?;
 
-                        plus_line.clear();
-                        minus_line.clear();
-                        
-                        plus_line.push(c);
-                        snapped_file.insert(i, c);
-                        last_change = LastChange::Insert;
-                    },
+                    plus_line.clear();
+                    minus_line.clear();
+
+                    plus_line.push(c);
+                    snapped_file.insert(i, c);
+                    last_change = LastChange::Insert;
                 }
             },
-            slice_diff_patch::Change::Update((i, c)) => {
-                match last_change {
-                    LastChange::Update => {
-                        plus_line.push(c);
-                        minus_line.push(snapped_file[i]);
-                        snapped_file.remove(i);
-                        snapped_file.insert(i, c);
-                    },
-                    x => {
-                        print_changes(&x, &plus_line, &minus_line)?;
+            slice_diff_patch::Change::Update((i, c)) => match last_change {
+                LastChange::Update => {
+                    plus_line.push(c);
+                    minus_line.push(snapped_file[i]);
+                    snapped_file.remove(i);
+                    snapped_file.insert(i, c);
+                }
+                x => {
+                    print_changes(&x, &plus_line, &minus_line)?;
 
-                        plus_line.clear();
-                        minus_line.clear();
-                        
-                        plus_line.push(c);
-                        minus_line.push(snapped_file[i]);
-                        snapped_file.remove(i);
-                        snapped_file.insert(i, c);
-                        last_change = LastChange::Update;
-                    },
+                    plus_line.clear();
+                    minus_line.clear();
+
+                    plus_line.push(c);
+                    minus_line.push(snapped_file[i]);
+                    snapped_file.remove(i);
+                    snapped_file.insert(i, c);
+                    last_change = LastChange::Update;
                 }
             },
         }
@@ -204,18 +198,34 @@ fn display_diffs(mut snapped_file: Vec<u8>, changes: Vec<slice_diff_patch::Chang
     Ok(())
 }
 
-fn print_changes(last_change: &LastChange, plus_line: &Vec<u8>, minus_line: &Vec<u8>) -> Result<(), Error> {
+fn print_changes(
+    last_change: &LastChange,
+    plus_line: &[u8],
+    minus_line: &[u8],
+) -> Result<(), Error> {
     match last_change {
         LastChange::Remove => {
-            println!("\x1B[91m- {}\x1B[0m", String::from_utf8(minus_line.clone()).map_err(Error::UTF8Error)?);
-        },
+            println!(
+                "\x1B[91m- {}\x1B[0m",
+                String::from_utf8(minus_line.to_owned()).map_err(Error::InvalidUTF8)?
+            );
+        }
         LastChange::Insert => {
-            println!("\x1B[32m+ {}\x1B[0m", String::from_utf8(plus_line.clone()).map_err(Error::UTF8Error)?)
-        },
+            println!(
+                "\x1B[32m+ {}\x1B[0m",
+                String::from_utf8(plus_line.to_owned()).map_err(Error::InvalidUTF8)?
+            )
+        }
         LastChange::Update => {
-            println!("\x1B[32m+ {}\x1B[0m", String::from_utf8(plus_line.clone()).map_err(Error::UTF8Error)?);
-            println!("\x1B[91m- {}\x1B[0m", String::from_utf8(minus_line.clone()).map_err(Error::UTF8Error)?);
-        },
+            println!(
+                "\x1B[32m+ {}\x1B[0m",
+                String::from_utf8(plus_line.to_owned()).map_err(Error::InvalidUTF8)?
+            );
+            println!(
+                "\x1B[91m- {}\x1B[0m",
+                String::from_utf8(minus_line.to_owned()).map_err(Error::InvalidUTF8)?
+            );
+        }
         LastChange::None => (),
     };
 

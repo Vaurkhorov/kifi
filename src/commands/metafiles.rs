@@ -6,8 +6,8 @@ const DIR_SEPARATOR: char = '/';
 use crate::Error;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::{path::PathBuf, str::FromStr};
 use std::time::SystemTime;
+use std::{path::PathBuf, str::FromStr};
 
 #[derive(Debug, Serialize, Deserialize)]
 /// Contains information about the repository as a whole
@@ -84,7 +84,7 @@ impl FileCache {
                     .insert(file_path.to_string(), RepoFile { status });
                 Ok(())
             }
-            false => Err(Error::FileNotFoundInCache(file_path.clone()))
+            false => Err(Error::FileNotFoundInCache(file_path.clone())),
         }
     }
 
@@ -136,11 +136,9 @@ pub struct Snapshot {
 
 impl Snapshot {
     fn new(name: &String) -> Snapshot {
-        Snapshot{
+        Snapshot {
             name: name.to_owned(),
-            created: {
-                SystemTime::now()
-            },
+            created: { SystemTime::now() },
         }
     }
 }

@@ -16,7 +16,7 @@ const KIFI_SNAPS: &str = ".kifi/SNAPSHOTS.kifi";
 /// File containing paths of all files in the repo's root directory, tracked or otherwise
 const KIFI_FILECACHE: &str = ".kifi/FILECACHE.kifi";
 
-use crate::commands::helpers::{create_file_cache, gen_name, snap_file, diffs};
+use crate::commands::helpers::{create_file_cache, diffs, gen_name, snap_file};
 use crate::errors::Error;
 use metafiles::{FileCache, FileStatus, Metadata, Snapshots};
 use serde_cbor::{from_reader, to_writer};
@@ -81,7 +81,6 @@ pub fn track(file_name: &String) -> Result<(), Error> {
             return Err(e);
         }
     };
-    
 
     let cache_file = fs::File::create(KIFI_FILECACHE).map_err(Error::CreateFile)?;
     to_writer(cache_file, &cache).map_err(Error::CBORWriter)?;
