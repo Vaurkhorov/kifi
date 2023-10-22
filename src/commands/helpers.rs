@@ -140,23 +140,38 @@ fn display_diffs(
     mut snapped_file: Vec<String>,
     changes: Vec<slice_diff_patch::Change<String>>,
 ) -> Result<(), Error> {
+
+    let mut line_numbers: Vec<usize> = (1..=snapped_file.len()).collect();
+
     for change in changes {
+        println!();
         match change {
             slice_diff_patch::Change::Remove(index) => {
-                println!("\x1B[91m- {}\x1B[0m", snapped_file.remove(index));
+                println!("\x1B[91m- {}\t|{}\x1B[0m", line_numbers.remove(index), snapped_file.remove(index));
             }
             slice_diff_patch::Change::Insert((index, element)) => {
-                println!("\x1B[32m+ {}\x1B[0m", &element);
-                snapped_file.insert(index, element)
+                println!("\x1B[32m+ {}\t|{}\x1B[0m", (&index + 1), &element);
+                
+                // Anything can be inserted here, this is just tracking the line number where lines exist.
+                // So the index is important, not the element. 0 is just a placeholder.
+                // There could be an enum instead, but there really isn't any need for it.
+                line_numbers.insert(index, 0);
+                snapped_file.insert(index, element);
             }
             slice_diff_patch::Change::Update((index, element)) => {
                 println!(
-                    "\x1B[91m- {}\x1B[0m",
+                    "\x1B[91m- {}\t|{}\x1B[0m",
+                    line_numbers
+                    .get(index)
+                    .expect("Diffs were just calculated, this index should exist."),
                     snapped_file
                         .get(index)
                         .expect("Diffs were just calculated, this index should exist.")
                 );
-                println!("\x1B[32m+ {}\x1B[0m", &element);
+                println!("\x1B[32m+ {}\t|{}\x1B[0m", (&index + 1), &element);
+                
+                // Setting the element to zero has no use, but it could be helpful while debugging.
+                // line_numbers[index] = 0;
                 snapped_file[index] = element;
             }
         }
