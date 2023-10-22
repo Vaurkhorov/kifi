@@ -99,13 +99,9 @@ pub fn preview() -> Result<(), Error> {
     let last_snapshot = snapshots.get_last();
 
     for file in cache.get_keys() {
-        // do something with
-        match cache.get_status(file).expect("Keys were fetched from the cache and immediately used, so the corresponding value should exist.") {
-            FileStatus::Tracked => {
-                diffs(file, last_snapshot)?;
-            },
-            _ => {},
-        };
+        if let FileStatus::Tracked = cache.get_status(file).expect("Keys were fetched from the cache and immediately used, so the corresponding value should exist.") {
+            diffs(file, last_snapshot)?;
+        }
     }
 
     Ok(())
