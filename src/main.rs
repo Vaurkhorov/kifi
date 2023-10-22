@@ -40,14 +40,11 @@ fn main() {
         }
     };
 
-    let exit_output = match exit_status {
+    match exit_status {
         Ok(()) => 0,
         Err(ref e) => {
             e.handle();
             1
         }
     };
-
-    #[cfg(debug_assertions)]
-    println!("Exit Status: {}", exit_output);
 }
