@@ -16,7 +16,7 @@ const KIFI_SNAPS: &str = ".kifi/SNAPSHOTS.kifi";
 /// File containing paths of all files in the repo's root directory, tracked or otherwise
 const KIFI_FILECACHE: &str = ".kifi/FILECACHE.kifi";
 
-use crate::commands::helpers::{create_file_cache, gen_name, snap_file};
+use crate::commands::helpers::{create_file_cache, diffs, gen_name, snap_file};
 use crate::errors::Error;
 use metafiles::{FileCache, FileStatus, Metadata, Snapshots};
 use serde_cbor::{from_reader, to_writer};
@@ -73,11 +73,36 @@ pub fn track(file_name: &String) -> Result<(), Error> {
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
     let mut cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
-    cache.change_status(&file_path, FileStatus::Tracked);
-    println!("Tracking {}", file_path);
+    match cache.change_status(&file_path, FileStatus::Tracked) {
+        Ok(()) => {
+            println!("Tracking {}", file_path);
+        }
+        Err(e) => {
+            return Err(e);
+        }
+    };
 
     let cache_file = fs::File::create(KIFI_FILECACHE).map_err(Error::CreateFile)?;
     to_writer(cache_file, &cache).map_err(Error::CBORWriter)?;
+
+    Ok(())
+}
+
+/// Shows diffs
+pub fn preview() -> Result<(), Error> {
+    let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
+    let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
+
+    let snapshots_file = fs::read(KIFI_SNAPS).map_err(Error::ReadFile)?;
+    let snapshots: Snapshots = from_reader(&snapshots_file[..]).map_err(Error::CBORReader)?;
+
+    let last_snapshot = snapshots.get_last();
+
+    for file in cache.get_keys() {
+        if let FileStatus::Tracked = cache.get_status(file).expect("Keys were fetched from the cache and immediately used, so the corresponding value should exist.") {
+            diffs(file, last_snapshot)?;
+        }
+    }
 
     Ok(())
 }
