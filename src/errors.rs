@@ -47,7 +47,7 @@ impl Error {
                 eprintln!("Failed to copy file: {:?}", io_error);
             }
             Error::FileNotFoundInCache(file_path) => {
-                eprintln!("File not found in cache: {:?}", file_path)
+                eprintln!("File not found in cache: {}", file_path)
             }
         }
     }

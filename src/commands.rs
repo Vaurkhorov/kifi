@@ -1,5 +1,7 @@
-mod helpers;
+mod init;
 mod metafiles;
+mod preview;
+mod snapshot;
 
 #[cfg(target_os = "windows")]
 const DIR_SEPARATOR: char = '\\';
@@ -16,7 +18,9 @@ const KIFI_SNAPS: &str = ".kifi/SNAPSHOTS.kifi";
 /// File containing paths of all files in the repo's root directory, tracked or otherwise
 const KIFI_FILECACHE: &str = ".kifi/FILECACHE.kifi";
 
-use crate::commands::helpers::{create_file_cache, diffs, gen_name, snap_file};
+use crate::commands::init::create_file_cache;
+use crate::commands::preview::diffs;
+use crate::commands::snapshot::{gen_name, snap_file};
 use crate::errors::Error;
 use metafiles::{FileCache, FileStatus, Metadata, Snapshots};
 use serde_cbor::{from_reader, to_writer};
