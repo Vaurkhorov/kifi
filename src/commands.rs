@@ -1,3 +1,4 @@
+mod common;
 mod init;
 mod metafiles;
 mod preview;
@@ -18,6 +19,7 @@ const KIFI_SNAPS: &str = ".kifi/SNAPSHOTS.kifi";
 /// File containing paths of all files in the repo's root directory, tracked or otherwise
 const KIFI_FILECACHE: &str = ".kifi/FILECACHE.kifi";
 
+use crate::commands::common::kifi_exists;
 use crate::commands::init::create_file_cache;
 use crate::commands::preview::diffs;
 use crate::commands::snapshot::{gen_name, snap_file};
@@ -47,6 +49,8 @@ pub fn initialise() -> Result<(), Error> {
 #[cfg(debug_assertions)]
 /// Outputs contents of files from the .kifi directory
 pub fn debug_meta() -> Result<(), Error> {
+    kifi_exists()?;
+
     let metadata_file = fs::read(KIFI_META).map_err(Error::ReadFile)?;
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
 
@@ -72,6 +76,8 @@ pub fn debug_meta() -> Result<(), Error> {
 
 /// Changes status of file to FileStatus::Tracked, see `metafiles`
 pub fn track(file_name: &String) -> Result<(), Error> {
+    kifi_exists()?;
+
     let file_path = format!(".{}{}", DIR_SEPARATOR, file_name);
 
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
@@ -94,6 +100,8 @@ pub fn track(file_name: &String) -> Result<(), Error> {
 
 /// Shows diffs
 pub fn preview() -> Result<(), Error> {
+    kifi_exists()?;
+
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
     let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
@@ -113,6 +121,8 @@ pub fn preview() -> Result<(), Error> {
 
 /// Takes a snapshot
 pub fn snapshot() -> Result<(), Error> {
+    kifi_exists()?;
+
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
     let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 

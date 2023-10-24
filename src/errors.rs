@@ -2,6 +2,7 @@ use std::{ffi::OsString, io::Error as ioError};
 
 #[derive(Debug)]
 pub enum Error {
+    KifiNotInitialised,
     CreateDirectory(ioError),
     CreateFile(ioError),
     ReadFile(ioError),
@@ -16,6 +17,10 @@ pub enum Error {
 impl Error {
     pub fn handle(&self) {
         match self {
+            Error::KifiNotInitialised => {
+                eprintln!("No repository accessible at the current working directory.");
+                eprintln!("Run `kifi init` to initialise the repository.");
+            }
             Error::CreateDirectory(io_error) => {
                 eprintln!("Failed to create directory: {:?}", io_error);
             }
