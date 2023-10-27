@@ -21,9 +21,10 @@ const KIFI_FILECACHE: &str = ".kifi/FILECACHE.kifi";
 
 use crate::commands::common::kifi_exists;
 use crate::commands::init::create_file_cache;
-use crate::commands::preview::diffs;
+use crate::commands::preview::{generate_diffs, read_lines};
 use crate::commands::snapshot::{gen_name, snap_file};
 use crate::errors::Error;
+use crate::output::{Output, ConsoleOutput};
 use metafiles::{FileCache, FileStatus, Metadata, Snapshots};
 use serde_cbor::{from_reader, to_writer};
 use std::env::current_dir;
@@ -110,11 +111,28 @@ pub fn preview() -> Result<(), Error> {
 
     let last_snapshot = snapshots.get_last();
 
+    let mut output = ConsoleOutput::new();    
+
     for file in cache.get_keys() {
         if let FileStatus::Tracked = cache.get_status(file).expect("Keys were fetched from the cache and immediately used, so the corresponding value should exist.") {
-            diffs(file, last_snapshot)?;
+            output.add(file.to_string());
+
+            let current_file = match read_lines(file) {
+                Ok(v) => v,
+                Err(_) => Vec::new(),
+            };
+        
+            let snapped_file_path = ".kifi\\".to_string() + &last_snapshot.name + "\\" + file;
+            let snapped_file = match read_lines(&snapped_file_path) {
+                Ok(v) => v,
+                Err(_) => Vec::new(),
+            };
+            
+            generate_diffs(snapped_file, current_file, &mut output)?;
         }
     }
+
+    output.print();
 
     Ok(())
 }

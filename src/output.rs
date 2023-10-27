@@ -28,10 +28,12 @@ impl Output for ConsoleOutput {
     }
 }
 
+#[cfg(test)]
 pub struct DebugOutput {
     output: Vec<String>,
 }
 
+#[cfg(test)]
 impl DebugOutput {
     pub fn new() -> Self {
         DebugOutput {
@@ -40,6 +42,7 @@ impl DebugOutput {
     }
 }
 
+#[cfg(test)]
 impl Output for DebugOutput {
     fn add(&mut self, output: String) {
         self.output.push(output);

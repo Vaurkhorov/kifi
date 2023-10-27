@@ -1,21 +1,9 @@
-use super::metafiles::Snapshot;
 use crate::Error;
-use crate::output::{Output, ConsoleOutput};
+use crate::output::Output;
 use std::fs;
 use std::io::{BufRead, BufReader};
 
-pub fn diffs(file_name: &String, last_snapshot: &Snapshot) -> Result<(), Error> {
-    let current_file = match read_lines(file_name) {
-        Ok(v) => v,
-        Err(_) => Vec::new(),
-    };
-
-    let snapped_file_path = ".kifi\\".to_string() + &last_snapshot.name + "\\" + file_name;
-    let snapped_file = match read_lines(&snapped_file_path) {
-        Ok(v) => v,
-        Err(_) => Vec::new(),
-    };
-
+pub fn generate_diffs(snapped_file: Vec<String>, current_file: Vec<String>, output: &mut dyn Output) -> Result<(), Error> {
     let changes = slice_diff_patch::lcs_diff(&snapped_file, &current_file);
     if changes.is_empty() {
         return Ok(());
@@ -25,16 +13,11 @@ pub fn diffs(file_name: &String, last_snapshot: &Snapshot) -> Result<(), Error> 
     #[cfg(debug_assertions)]
     println!("{:?}\n", &changes);
 
-    let mut output = ConsoleOutput::new();
-
-    output.add(format!("{}", file_name));
-    display_diffs(snapped_file, changes, &mut output)?;
-
-    output.print();
+    generate_output_from_diffs(snapped_file, changes, output)?;
     Ok(())
 }
 
-fn read_lines(path: &String) -> Result<Vec<String>, Error> {
+pub fn read_lines(path: &String) -> Result<Vec<String>, Error> {
     let file = fs::File::open(path).map_err(Error::ReadFile)?;
     let reader = BufReader::new(file);
 
@@ -47,7 +30,7 @@ fn read_lines(path: &String) -> Result<Vec<String>, Error> {
     Ok(lines)
 }
 
-fn display_diffs(
+fn generate_output_from_diffs(
     mut snapped_file: Vec<String>,
     changes: Vec<slice_diff_patch::Change<String>>,
     output: &mut dyn Output,
@@ -99,4 +82,65 @@ fn display_diffs(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::generate_diffs;
+    use crate::output::{Output, DebugOutput};
+
+    #[test]
+    fn test_diffs() {
+        let dummy_snapped_file = vec![
+            "Lorem ipsum dolor sit amet",
+            "consectetur adipiscing elit",
+            "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
+            "Ut enim ad minim veniam",
+            "quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat",
+            "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur",
+            "sunt in culpa qui officia deserunt mollit anim id est laborum",
+            "Vulputate ut pharetra sit amet",
+        ];
+
+        let dummy_changed_file = vec![
+            "Lorem ipsum dolor sit amet",
+            "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
+            "Ut enim ad minim veniam",
+            "quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat",
+            "Excepteur sint occaecat cupidatat non proident",
+            "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur",
+            "Tempor orci dapibus ultrices in iaculis nunc sed",
+            "Vulputate ut pharetra sit amet",
+        ];
+
+        let mut snapped_strings: Vec<String> = Vec::new();
+        for &literal in &dummy_snapped_file {
+            snapped_strings.push(String::from(literal));
+        }
+
+        let mut changed_strings: Vec<String> = Vec::new();
+        for &literal in &dummy_changed_file {
+            changed_strings.push(String::from(literal));
+        }
+
+        let test = vec![
+            "\x1B[91m- 2\t|consectetur adipiscing elit\x1B[0m",
+            "",
+            "\x1B[32m+ 5\t|Excepteur sint occaecat cupidatat non proident\x1B[0m",
+            "",
+            "\x1B[91m- 7\t|sunt in culpa qui officia deserunt mollit anim id est laborum\x1B[0m\n\x1B[32m+ 7\t|Tempor orci dapibus ultrices in iaculis nunc sed\x1B[0m",
+            "",
+        ];
+
+        let mut test_strings: Vec<String> = Vec::new();
+        for &literal in &test {
+            test_strings.push(String::from(literal));
+        }
+
+        let mut output = DebugOutput::new();
+        assert!(generate_diffs(snapped_strings, changed_strings, &mut output).is_ok());
+
+        assert_eq!(test_strings, output.print().expect("generate_diffs() should have given an output."))
+
+    }
 }
