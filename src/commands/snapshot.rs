@@ -24,8 +24,7 @@ pub fn snap_file(file_name: &String, snap_dir: &String) -> Result<(), Error> {
     ) {
         Ok(_) => Ok(()),
         Err(io_error) => {
-            println!("{:#?}", file_name);
-            Err(Error::FileCopy(io_error))
+            Err(Error::FileCopy(file_name.clone(), io_error))
         }
     }
 }
