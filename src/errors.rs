@@ -10,7 +10,7 @@ pub enum Error {
     CBORWriter(serde_cbor::Error),
     CBORReader(serde_cbor::Error),
     ConvertToString(OsString),
-    FileCopy(ioError),
+    FileCopy(String, ioError),
     FileNotFoundInCache(String), // String is the path to the file
 }
 
@@ -48,8 +48,8 @@ impl Error {
                     os_string
                 );
             }
-            Error::FileCopy(io_error) => {
-                eprintln!("Failed to copy file: {:?}", io_error);
+            Error::FileCopy(path, io_error) => {
+                eprintln!("Failed to copy {}: {:?}", path, io_error);
             }
             Error::FileNotFoundInCache(file_path) => {
                 eprintln!("File not found in cache: {}", file_path)
