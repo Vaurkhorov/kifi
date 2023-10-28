@@ -1,15 +1,19 @@
-use crate::Error;
 use crate::output::Output;
+use crate::Error;
 use std::fs;
 use std::io::{BufRead, BufReader};
 
-pub fn generate_diffs(snapped_file: Vec<String>, current_file: Vec<String>, output: &mut dyn Output) -> Result<(), Error> {
+pub fn generate_diffs(
+    snapped_file: Vec<String>,
+    current_file: Vec<String>,
+    output: &mut dyn Output,
+) -> Result<(), Error> {
     let changes = slice_diff_patch::lcs_diff(&snapped_file, &current_file);
     if changes.is_empty() {
         return Ok(());
     }
 
-    // To debug:
+    // This needs to stay a println!, or the test will fail
     #[cfg(debug_assertions)]
     println!("{:?}\n", &changes);
 
@@ -57,8 +61,8 @@ fn generate_output_from_diffs(
             slice_diff_patch::Change::Update((index, element)) => {
                 let removed = snapped_file
                     .get(index)
-                    .expect("Diffs were just calculated, this index should exist."
-                ).clone();
+                    .expect("Diffs were just calculated, this index should exist.")
+                    .clone();
                 format!(
                     "\x1B[91m- {}\t|{}\x1B[0m\n\x1B[32m+ {}\t|{}\x1B[0m",
                     line_numbers
@@ -78,7 +82,7 @@ fn generate_output_from_diffs(
             }
         });
 
-        output.add(String::from(""));
+        output.add_str("");
     }
 
     Ok(())
@@ -87,7 +91,7 @@ fn generate_output_from_diffs(
 #[cfg(test)]
 mod tests {
     use super::generate_diffs;
-    use crate::output::{Output, DebugOutput};
+    use crate::output::{DebugOutput, Output};
 
     #[test]
     fn test_diffs() {
@@ -140,7 +144,11 @@ mod tests {
         let mut output = DebugOutput::new();
         assert!(generate_diffs(snapped_strings, changed_strings, &mut output).is_ok());
 
-        assert_eq!(test_strings, output.print().expect("generate_diffs() should have given an output."))
-
+        assert_eq!(
+            test_strings,
+            output
+                .print()
+                .expect("generate_diffs() should have given an output.")
+        )
     }
 }

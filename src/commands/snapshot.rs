@@ -23,9 +23,7 @@ pub fn snap_file(file_name: &String, snap_dir: &String) -> Result<(), Error> {
         format!("{}{}{}", snap_dir, DIR_SEPARATOR, file_name),
     ) {
         Ok(_) => Ok(()),
-        Err(io_error) => {
-            Err(Error::FileCopy(file_name.clone(), io_error))
-        }
+        Err(io_error) => Err(Error::FileCopy(file_name.clone(), io_error)),
     }
 }
 

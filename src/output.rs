@@ -1,5 +1,6 @@
 pub trait Output {
     fn add(&mut self, output: String);
+    fn add_str(&mut self, output: &str);
     fn print(&self) -> Option<Vec<String>>;
 }
 
@@ -9,15 +10,17 @@ pub struct ConsoleOutput {
 
 impl ConsoleOutput {
     pub fn new() -> Self {
-        ConsoleOutput {
-            output: Vec::new(),
-        }
+        ConsoleOutput { output: Vec::new() }
     }
 }
 
 impl Output for ConsoleOutput {
     fn add(&mut self, output: String) {
         self.output.push(output);
+    }
+
+    fn add_str(&mut self, output: &str) {
+        self.output.push(output.to_string());
     }
 
     fn print(&self) -> Option<Vec<String>> {
@@ -36,9 +39,7 @@ pub struct DebugOutput {
 #[cfg(test)]
 impl DebugOutput {
     pub fn new() -> Self {
-        DebugOutput {
-            output: Vec::new(),
-        }
+        DebugOutput { output: Vec::new() }
     }
 }
 
@@ -46,6 +47,10 @@ impl DebugOutput {
 impl Output for DebugOutput {
     fn add(&mut self, output: String) {
         self.output.push(output);
+    }
+
+    fn add_str(&mut self, output: &str) {
+        self.output.push(output.to_string());
     }
 
     fn print(&self) -> Option<Vec<String>> {

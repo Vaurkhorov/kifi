@@ -24,7 +24,7 @@ use crate::commands::init::create_file_cache;
 use crate::commands::preview::{generate_diffs, read_lines};
 use crate::commands::snapshot::{gen_name, snap_file};
 use crate::errors::Error;
-use crate::output::{Output, ConsoleOutput};
+use crate::output::Output;
 use metafiles::{FileCache, FileStatus, Metadata, Snapshots};
 use serde_cbor::{from_reader, to_writer};
 use std::env::current_dir;
@@ -49,7 +49,7 @@ pub fn initialise() -> Result<(), Error> {
 
 #[cfg(debug_assertions)]
 /// Outputs contents of files from the .kifi directory
-pub fn debug_meta() -> Result<(), Error> {
+pub fn debug_meta(output: &mut dyn Output) -> Result<(), Error> {
     kifi_exists()?;
 
     let metadata_file = fs::read(KIFI_META).map_err(Error::ReadFile)?;
@@ -58,25 +58,25 @@ pub fn debug_meta() -> Result<(), Error> {
     let metadata: Metadata = from_reader(&metadata_file[..]).map_err(Error::CBORReader)?;
     let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
-    println!("{:?}", metadata);
+    output.add(format!("{:?}", metadata));
 
-    println!("FileCache {{");
+    output.add_str("FileCache {{");
 
-    println!("\tfiles: {{");
+    output.add_str("\tfiles: {{");
     for file in cache.get_keys() {
-        println!("\t\t{}", file);
+        output.add(format!("\t\t{}", file));
         let status = cache.get_status(file).expect("Keys were fetched from the cache and immediately used, so the corresponding value should exist.");
-        println!("\t\t\tStatus: {:?}", status);
-        println!();
+        output.add(format!("\t\t\tStatus: {:?}", status));
+        output.add_str("");
     }
-    println!("\t}}");
-    println!("}}");
+    output.add_str("\t}}");
+    output.add_str("}}");
 
     Ok(())
 }
 
 /// Changes status of file to FileStatus::Tracked, see `metafiles`
-pub fn track(file_name: &String) -> Result<(), Error> {
+pub fn track(file_name: &String, output: &mut dyn Output) -> Result<(), Error> {
     kifi_exists()?;
 
     let file_path = format!(".{}{}", DIR_SEPARATOR, file_name);
@@ -86,7 +86,7 @@ pub fn track(file_name: &String) -> Result<(), Error> {
 
     match cache.change_status(&file_path, FileStatus::Tracked) {
         Ok(()) => {
-            println!("Tracking {}", file_path);
+            output.add(format!("Tracking {}", file_path));
         }
         Err(e) => {
             return Err(e);
@@ -100,7 +100,7 @@ pub fn track(file_name: &String) -> Result<(), Error> {
 }
 
 /// Shows diffs
-pub fn preview() -> Result<(), Error> {
+pub fn preview(output: &mut dyn Output) -> Result<(), Error> {
     kifi_exists()?;
 
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
@@ -110,8 +110,6 @@ pub fn preview() -> Result<(), Error> {
     let snapshots: Snapshots = from_reader(&snapshots_file[..]).map_err(Error::CBORReader)?;
 
     let last_snapshot = snapshots.get_last();
-
-    let mut output = ConsoleOutput::new();    
 
     for file in cache.get_keys() {
         if let FileStatus::Tracked = cache.get_status(file).expect("Keys were fetched from the cache and immediately used, so the corresponding value should exist.") {
@@ -128,7 +126,7 @@ pub fn preview() -> Result<(), Error> {
                 Err(_) => Vec::new(),
             };
             
-            generate_diffs(snapped_file, current_file, &mut output)?;
+            generate_diffs(snapped_file, current_file, output)?;
         }
     }
 
