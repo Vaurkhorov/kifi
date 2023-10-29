@@ -20,7 +20,7 @@ const KIFI_SNAPS: &str = ".kifi/SNAPSHOTS.kifi";
 const KIFI_FILECACHE: &str = ".kifi/FILECACHE.kifi";
 
 use crate::commands::common::kifi_exists;
-use crate::commands::init::create_file_cache;
+use crate::commands::init::update_file_cache;
 use crate::commands::preview::{generate_diffs, read_lines};
 use crate::commands::snapshot::{gen_name, snap_file};
 use crate::errors::Error;
@@ -44,7 +44,7 @@ pub fn initialise() -> Result<(), Error> {
 
     to_writer(metadata_file, &metadata).map_err(Error::CBORWriter)?;
 
-    create_file_cache()
+    update_file_cache()
 }
 
 #[cfg(debug_assertions)]
@@ -78,6 +78,7 @@ pub fn debug_meta(output: &mut dyn Output) -> Result<(), Error> {
 /// Changes status of file to FileStatus::Tracked, see `metafiles`
 pub fn track(file_name: &String, output: &mut dyn Output) -> Result<(), Error> {
     kifi_exists()?;
+    update_file_cache()?;
 
     let file_path = format!(".{}{}", DIR_SEPARATOR, file_name);
 
@@ -102,6 +103,7 @@ pub fn track(file_name: &String, output: &mut dyn Output) -> Result<(), Error> {
 /// Shows diffs
 pub fn preview(output: &mut dyn Output) -> Result<(), Error> {
     kifi_exists()?;
+    update_file_cache()?;
 
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
     let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
@@ -138,6 +140,7 @@ pub fn preview(output: &mut dyn Output) -> Result<(), Error> {
 /// Takes a snapshot
 pub fn snapshot() -> Result<(), Error> {
     kifi_exists()?;
+    update_file_cache()?;
 
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
     let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;

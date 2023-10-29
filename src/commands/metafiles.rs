@@ -29,7 +29,7 @@ impl Metadata {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum FileStatus {
     /// These files are not included in snapshots or previews
     Ignored,
@@ -57,12 +57,18 @@ impl FileCache {
     }
 
     pub fn add_file(&mut self, file_path: String) {
-        self.files.insert(
-            file_path,
-            RepoFile {
-                status: FileStatus::Untracked,
-            },
-        );
+        if !self.files.contains_key(&file_path) {
+            self.files.insert(
+                file_path,
+                RepoFile {
+                    status: FileStatus::Untracked,
+                },
+            );
+        }
+    }
+
+    pub fn add_file_from_existing(&mut self, file_path: String, old_file_status: FileStatus) {
+        self.files.insert(file_path, RepoFile { status: old_file_status });
     }
 
     pub fn get_keys(&self) -> Vec<&String> {
