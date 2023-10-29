@@ -130,8 +130,6 @@ pub fn preview(output: &mut dyn Output) -> Result<(), Error> {
         }
     }
 
-    output.print();
-
     Ok(())
 }
 
