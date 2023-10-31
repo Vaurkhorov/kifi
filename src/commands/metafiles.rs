@@ -1,8 +1,8 @@
 use crate::Error;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::time::SystemTime;
 use std::path::PathBuf;
+use std::time::SystemTime;
 
 #[derive(Debug, Serialize, Deserialize)]
 /// Contains information about the repository as a whole
@@ -12,15 +12,13 @@ pub struct Metadata {
 
 impl Metadata {
     pub fn from_pathbuf(path: PathBuf) -> Result<Self, Error> {
-        let canonical_path = path
-            .canonicalize()
-            .map_err(Error::Canonicalize)?;
+        let canonical_path = path.canonicalize().map_err(Error::Canonicalize)?;
         let name = canonical_path
             .file_name()
             .expect("kifi must be running in a directory, and so it should have a name.");
 
         Ok(Metadata {
-            repo_name: name.to_string_lossy().to_string()
+            repo_name: name.to_string_lossy().to_string(),
         })
     }
 }
@@ -53,18 +51,18 @@ impl FileCache {
     }
 
     pub fn add_file(&mut self, file_path: PathBuf) {
-        if !self.files.contains_key(&file_path) {
-            self.files.insert(
-                file_path,
-                RepoFile {
-                    status: FileStatus::Untracked,
-                },
-            );
-        }
+        self.files.entry(file_path).or_insert(RepoFile {
+            status: FileStatus::Untracked,
+        });
     }
 
     pub fn add_file_from_existing(&mut self, file_path: PathBuf, old_file_status: FileStatus) {
-        self.files.insert(file_path, RepoFile { status: old_file_status });
+        self.files.insert(
+            file_path,
+            RepoFile {
+                status: old_file_status,
+            },
+        );
     }
 
     pub fn get_keys(&self) -> Vec<&PathBuf> {
@@ -81,8 +79,7 @@ impl FileCache {
     pub fn change_status(&mut self, file_path: &PathBuf, status: FileStatus) -> Result<(), Error> {
         // TODO update cache
         if self.files.contains_key(file_path) {
-            self.files
-                .insert(file_path.to_owned(), RepoFile { status });
+            self.files.insert(file_path.to_owned(), RepoFile { status });
             Ok(())
         } else {
             Err(Error::FileNotFoundInCache(file_path.clone()))
@@ -124,7 +121,9 @@ impl Snapshots {
     }
 
     pub fn get_last(&self) -> Result<&Snapshot, Error> {
-        self.list.get(0).ok_or_else(|| Error::PreviewWithoutSnapshots)
+        self.list
+            .get(0)
+            .ok_or_else(|| Error::PreviewWithoutSnapshots)
     }
 }
 

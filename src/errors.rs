@@ -49,14 +49,19 @@ impl Error {
                 eprintln!("Could not read CBOR from file: {:?}", cbor_err);
             }
             Error::FileCopy(from, to, io_error) => {
-                eprintln!("Failed to copy {} to {}: {:?}", from.display(), to.display(), io_error);
+                eprintln!(
+                    "Failed to copy {} to {}: {:?}",
+                    from.display(),
+                    to.display(),
+                    io_error
+                );
             }
             Error::FileNotFoundInCache(file_path) => {
                 eprintln!("File not found in cache: {}", file_path.display());
             }
             Error::ReservedFilenameNotAvailable(file_name) => {
                 eprintln!("{} is a reserved file name, and isn't available. Is there a directory with the same name?", file_name);
-            },
+            }
             Error::PreviewWithoutSnapshots => {
                 eprintln!("No previous snapshots exist to preview from.");
             }

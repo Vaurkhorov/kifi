@@ -29,9 +29,8 @@ use std::path::PathBuf;
 
 /// Initialises a kifi repo
 pub fn initialise() -> Result<(), Error> {
-    match kifi_exists() {
-        Ok(()) => fs::remove_dir_all("./.kifi").expect(".kifi was just confirmed to exist already. kifi should have sufficient permissions to remove its contents."),
-        Err(_) => (),
+    if kifi_exists().is_ok() {
+        fs::remove_dir_all("./.kifi").expect(".kifi was just confirmed to exist already. kifi should have sufficient permissions to remove its contents.");
     };
 
     fs::create_dir(KIFI_DIR).map_err(Error::CreateDirectory)?;
@@ -123,14 +122,14 @@ pub fn preview(output: &mut dyn Output) -> Result<(), Error> {
                 Ok(v) => v,
                 Err(_) => Vec::new(),
             };
-        
+
             let snapped_file_path = PathBuf::from(".kifi").join(&last_snapshot.name).join(file);
             // let snapped_file_path = ".kifi\\".to_string() + &last_snapshot.name + "\\" + file;
             let snapped_file = match read_lines(&snapped_file_path) {
                 Ok(v) => v,
                 Err(_) => Vec::new(),
             };
-            
+
             generate_diffs(snapped_file, current_file, output)?;
         }
     }

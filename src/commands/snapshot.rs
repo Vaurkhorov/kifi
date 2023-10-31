@@ -6,19 +6,17 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub fn snap_file(file_name: &PathBuf, snap_dir: &PathBuf) -> Result<(), Error> {
     fs::create_dir_all(snap_dir).map_err(Error::CreateDirectory)?;
 
-    match file_name.parent() {
-        Some(dir) => {
-            fs::create_dir_all(snap_dir.join(dir)).map_err(Error::CreateDirectory)?;
-        },
-        None => (),
-    };
+    if let Some(dir) = file_name.parent() {
+        fs::create_dir_all(snap_dir.join(dir)).map_err(Error::CreateDirectory)?;
+    }
 
-    match fs::copy(
-        file_name,
-        snap_dir.join(file_name),
-    ) {
+    match fs::copy(file_name, snap_dir.join(file_name)) {
         Ok(_) => Ok(()),
-        Err(io_error) => Err(Error::FileCopy(file_name.to_owned(), snap_dir.join(file_name).to_owned(), io_error)),
+        Err(io_error) => Err(Error::FileCopy(
+            file_name.to_owned(),
+            snap_dir.join(file_name).to_owned(),
+            io_error,
+        )),
     }
 }
 
