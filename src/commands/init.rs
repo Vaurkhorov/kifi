@@ -2,6 +2,7 @@ use crate::commands::{FileCache, KIFI_FILECACHE};
 use crate::Error;
 use serde_cbor::{to_writer, from_reader};
 use std::fs;
+use std::path::PathBuf;
 
 /// Generates a vector of files and stores it
 pub fn update_file_cache() -> Result<(), Error> {
@@ -63,15 +64,20 @@ fn read_direntry(f: fs::DirEntry, file_list: &mut FileCache, old_file_list: &Fil
             }
         }
     } else {
-        let file_str = &f
+        // The file is going to contain './' at the beginning, which we strip.
+        let file_path = &f
             .path()
-            .into_os_string()
-            .into_string()
-            .map_err(Error::ConvertToString)?;
-        if old_file_list.get_keys().contains(&file_str) {
-            file_list.add_file_from_existing(file_str.to_owned(), old_file_list.get_status(&file_str).expect("Keys were fetched from the cache and immediately used, so the corresponding value should exist.").to_owned())
+            .strip_prefix(
+                PathBuf::from(".")
+            )
+            .expect("Should start with its first ancestor.")
+            .to_owned();
+
+
+        if old_file_list.get_keys().contains(&file_path) {
+            file_list.add_file_from_existing(file_path.to_owned(), old_file_list.get_status(&file_path).expect("Keys were fetched from the cache and immediately used, so the corresponding value should exist.").to_owned())
         }
-        file_list.add_file(file_str.to_owned());
+        file_list.add_file(file_path.to_owned());
     }
 
     Ok(())

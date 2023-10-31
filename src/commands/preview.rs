@@ -2,6 +2,7 @@ use crate::output::Output;
 use crate::Error;
 use std::fs;
 use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
 
 pub fn generate_diffs(
     snapped_file: Vec<String>,
@@ -21,7 +22,7 @@ pub fn generate_diffs(
     Ok(())
 }
 
-pub fn read_lines(path: &String) -> Result<Vec<String>, Error> {
+pub fn read_lines(path: &PathBuf) -> Result<Vec<String>, Error> {
     let file = fs::File::open(path).map_err(Error::ReadFile)?;
     let reader = BufReader::new(file);
 

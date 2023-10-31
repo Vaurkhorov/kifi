@@ -1,13 +1,8 @@
-#[cfg(target_os = "windows")]
-const DIR_SEPARATOR: char = '\\';
-#[cfg(not(target_os = "windows"))]
-const DIR_SEPARATOR: char = '/';
-
 use crate::Error;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::SystemTime;
-use std::{path::PathBuf, str::FromStr};
+use std::path::PathBuf;
 
 #[derive(Debug, Serialize, Deserialize)]
 /// Contains information about the repository as a whole
@@ -16,16 +11,17 @@ pub struct Metadata {
 }
 
 impl Metadata {
-    pub fn from_pathbuf(value: PathBuf) -> Self {
-        let path = value.to_str().expect("test");
-        let name = match path.rfind(DIR_SEPARATOR) {
-            Some(i) => {
-                String::from_str(&path[i + 1..]).expect("test2") // Whatever is after the last '/' or '\'
-            }
-            None => String::from_str(path).expect("test3"),
-        };
+    pub fn from_pathbuf(path: PathBuf) -> Result<Self, Error> {
+        let canonical_path = path
+            .canonicalize()
+            .map_err(Error::Canonicalize)?;
+        let name = canonical_path
+            .file_name()
+            .expect("kifi must be running in a directory, and so it should have a name.");
 
-        Metadata { repo_name: name }
+        Ok(Metadata {
+            repo_name: name.to_string_lossy().to_string()
+        })
     }
 }
 
@@ -46,7 +42,7 @@ struct RepoFile {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileCache {
-    files: HashMap<String, RepoFile>,
+    files: HashMap<PathBuf, RepoFile>,
 }
 
 impl FileCache {
@@ -56,7 +52,7 @@ impl FileCache {
         }
     }
 
-    pub fn add_file(&mut self, file_path: String) {
+    pub fn add_file(&mut self, file_path: PathBuf) {
         if !self.files.contains_key(&file_path) {
             self.files.insert(
                 file_path,
@@ -67,40 +63,39 @@ impl FileCache {
         }
     }
 
-    pub fn add_file_from_existing(&mut self, file_path: String, old_file_status: FileStatus) {
+    pub fn add_file_from_existing(&mut self, file_path: PathBuf, old_file_status: FileStatus) {
         self.files.insert(file_path, RepoFile { status: old_file_status });
     }
 
-    pub fn get_keys(&self) -> Vec<&String> {
+    pub fn get_keys(&self) -> Vec<&PathBuf> {
         self.files.keys().collect()
     }
 
-    pub fn get_status(&self, key: &String) -> Option<&FileStatus> {
+    pub fn get_status(&self, key: &PathBuf) -> Option<&FileStatus> {
         match self.files.get(key) {
             Some(repo_file) => Some(&repo_file.status),
             None => None,
         }
     }
 
-    pub fn change_status(&mut self, file_path: &String, status: FileStatus) -> Result<(), Error> {
+    pub fn change_status(&mut self, file_path: &PathBuf, status: FileStatus) -> Result<(), Error> {
         // TODO update cache
-        match self.files.contains_key(file_path) {
-            true => {
-                self.files
-                    .insert(file_path.to_string(), RepoFile { status });
-                Ok(())
-            }
-            false => Err(Error::FileNotFoundInCache(file_path.clone())),
+        if self.files.contains_key(file_path) {
+            self.files
+                .insert(file_path.to_owned(), RepoFile { status });
+            Ok(())
+        } else {
+            Err(Error::FileNotFoundInCache(file_path.clone()))
         }
     }
 
-    pub fn get_tracked_files(&self) -> Vec<&String> {
+    pub fn get_tracked_files(&self) -> Vec<&PathBuf> {
         let mut files = self.get_keys();
         files.retain(|&k| self.has_tracked_file(k));
         files
     }
 
-    pub fn has_tracked_file(&self, file_path: &String) -> bool {
+    pub fn has_tracked_file(&self, file_path: &PathBuf) -> bool {
         match self.files.get(file_path) {
             Some(tracked) => match tracked.status {
                 FileStatus::Ignored => false,
