@@ -4,10 +4,6 @@ mod metafiles;
 mod preview;
 mod snapshot;
 
-#[cfg(target_os = "windows")]
-const DIR_SEPARATOR: char = '\\';
-#[cfg(not(target_os = "windows"))]
-const DIR_SEPARATOR: char = '/';
 /// Directory containing metadata
 const KIFI_DIR: &str = ".kifi";
 /// File containing metadata about the repository itself
@@ -29,6 +25,7 @@ use metafiles::{FileCache, FileStatus, Metadata, Snapshots};
 use serde_cbor::{from_reader, to_writer};
 use std::env::current_dir;
 use std::fs;
+use std::path::PathBuf;
 
 /// Initialises a kifi repo
 pub fn initialise() -> Result<(), Error> {
@@ -45,7 +42,7 @@ pub fn initialise() -> Result<(), Error> {
     to_writer(snapshots_file, &Snapshots::new()).map_err(Error::CBORWriter)?;
 
     let current_directory_path = current_dir().map_err(Error::GetCurrentDirectory)?;
-    let metadata = Metadata::from_pathbuf(current_directory_path);
+    let metadata = Metadata::from_pathbuf(current_directory_path)?;
 
     to_writer(metadata_file, &metadata).map_err(Error::CBORWriter)?;
 
@@ -69,7 +66,7 @@ pub fn debug_meta(output: &mut dyn Output) -> Result<(), Error> {
 
     output.add_str("\tfiles: {{");
     for file in cache.get_keys() {
-        output.add(format!("\t\t{}", file));
+        output.add(format!("\t\t{}", file.display()));
         let status = cache.get_status(file).expect("Keys were fetched from the cache and immediately used, so the corresponding value should exist.");
         output.add(format!("\t\t\tStatus: {:?}", status));
         output.add_str("");
@@ -85,14 +82,14 @@ pub fn track(file_name: &String, output: &mut dyn Output) -> Result<(), Error> {
     kifi_exists()?;
     update_file_cache()?;
 
-    let file_path = format!(".{}{}", DIR_SEPARATOR, file_name);
+    let file_path = PathBuf::from(file_name);
 
     let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
     let mut cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
     match cache.change_status(&file_path, FileStatus::Tracked) {
         Ok(()) => {
-            output.add(format!("Tracking {}", file_path));
+            output.add(format!("Tracking {}", file_path.display()));
         }
         Err(e) => {
             return Err(e);
@@ -120,14 +117,15 @@ pub fn preview(output: &mut dyn Output) -> Result<(), Error> {
 
     for file in cache.get_keys() {
         if let FileStatus::Tracked = cache.get_status(file).expect("Keys were fetched from the cache and immediately used, so the corresponding value should exist.") {
-            output.add(file.to_string());
+            output.add(file.display().to_string());
 
             let current_file = match read_lines(file) {
                 Ok(v) => v,
                 Err(_) => Vec::new(),
             };
         
-            let snapped_file_path = ".kifi\\".to_string() + &last_snapshot.name + "\\" + file;
+            let snapped_file_path = PathBuf::from(".kifi").join(&last_snapshot.name).join(file);
+            // let snapped_file_path = ".kifi\\".to_string() + &last_snapshot.name + "\\" + file;
             let snapped_file = match read_lines(&snapped_file_path) {
                 Ok(v) => v,
                 Err(_) => Vec::new(),
@@ -152,7 +150,7 @@ pub fn snapshot() -> Result<(), Error> {
     let mut snapshots: Snapshots = from_reader(&snapshots_file[..]).map_err(Error::CBORReader)?;
 
     let snap_name = gen_name();
-    let snap_dir = format!(".kifi{}{}", DIR_SEPARATOR, snap_name);
+    let snap_dir = PathBuf::from(".kifi").join(&snap_name);
     snapshots.new_snap(&snap_name);
 
     for file in cache.get_tracked_files() {

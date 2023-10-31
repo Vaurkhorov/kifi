@@ -1,29 +1,24 @@
-#[cfg(target_os = "windows")]
-const DIR_SEPARATOR: char = '\\';
-#[cfg(not(target_os = "windows"))]
-const DIR_SEPARATOR: char = '/';
-
 use crate::Error;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub fn snap_file(file_name: &String, snap_dir: &String) -> Result<(), Error> {
+pub fn snap_file(file_name: &PathBuf, snap_dir: &PathBuf) -> Result<(), Error> {
     fs::create_dir_all(snap_dir).map_err(Error::CreateDirectory)?;
 
-    let mut destination_dir = PathBuf::from(file_name);
-    destination_dir = destination_dir
-        .parent()
-        .expect("a path's parent directory should always be atleast './'.")
-        .to_path_buf();
-    fs::create_dir_all(destination_dir).map_err(Error::CreateDirectory)?;
+    match file_name.parent() {
+        Some(dir) => {
+            fs::create_dir_all(snap_dir.join(dir)).map_err(Error::CreateDirectory)?;
+        },
+        None => (),
+    };
 
     match fs::copy(
         file_name,
-        format!("{}{}{}", snap_dir, DIR_SEPARATOR, file_name),
+        snap_dir.join(file_name),
     ) {
         Ok(_) => Ok(()),
-        Err(io_error) => Err(Error::FileCopy(file_name.clone(), io_error)),
+        Err(io_error) => Err(Error::FileCopy(file_name.to_owned(), snap_dir.join(file_name).to_owned(), io_error)),
     }
 }
 

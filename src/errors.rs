@@ -1,17 +1,18 @@
-use std::{ffi::OsString, io::Error as ioError};
+use std::io::Error as ioError;
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum Error {
     KifiNotInitialised,
+    Canonicalize(ioError),
     CreateDirectory(ioError),
     CreateFile(ioError),
     ReadFile(ioError),
     GetCurrentDirectory(ioError),
     CBORWriter(serde_cbor::Error),
     CBORReader(serde_cbor::Error),
-    ConvertToString(OsString),
-    FileCopy(String, ioError),
-    FileNotFoundInCache(String), // String is the path to the file
+    FileCopy(PathBuf, PathBuf, ioError),
+    FileNotFoundInCache(PathBuf), // String is the path to the file
     ReservedFilenameNotAvailable(String),
     PreviewWithoutSnapshots,
 }
@@ -22,6 +23,9 @@ impl Error {
             Error::KifiNotInitialised => {
                 eprintln!("No repository accessible at the current working directory.");
                 eprintln!("Run `kifi init` to initialise the repository.");
+            }
+            Error::Canonicalize(io_error) => {
+                eprintln!("Could not canonicalize path: {:?}", io_error);
             }
             Error::CreateDirectory(io_error) => {
                 eprintln!("Failed to create directory: {:?}", io_error);
@@ -44,17 +48,11 @@ impl Error {
             Error::CBORReader(cbor_err) => {
                 eprintln!("Could not read CBOR from file: {:?}", cbor_err);
             }
-            Error::ConvertToString(os_string) => {
-                eprintln!(
-                    "Failed to convert OsString to String, possibly due to invalid Unicode: {:?}",
-                    os_string
-                );
-            }
-            Error::FileCopy(path, io_error) => {
-                eprintln!("Failed to copy {}: {:?}", path, io_error);
+            Error::FileCopy(from, to, io_error) => {
+                eprintln!("Failed to copy {} to {}: {:?}", from.display(), to.display(), io_error);
             }
             Error::FileNotFoundInCache(file_path) => {
-                eprintln!("File not found in cache: {}", file_path);
+                eprintln!("File not found in cache: {}", file_path.display());
             }
             Error::ReservedFilenameNotAvailable(file_name) => {
                 eprintln!("{} is a reserved file name, and isn't available. Is there a directory with the same name?", file_name);
