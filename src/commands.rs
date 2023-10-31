@@ -32,6 +32,11 @@ use std::fs;
 
 /// Initialises a kifi repo
 pub fn initialise() -> Result<(), Error> {
+    match kifi_exists() {
+        Ok(()) => fs::remove_dir_all("./.kifi").expect(".kifi was just confirmed to exist already. kifi should have sufficient permissions to remove its contents."),
+        Err(_) => (),
+    };
+
     fs::create_dir(KIFI_DIR).map_err(Error::CreateDirectory)?;
     let metadata_file = fs::File::create(KIFI_META).map_err(Error::CreateFile)?;
     fs::File::create(KIFI_TRACKED).map_err(Error::CreateFile)?;
