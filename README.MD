@@ -1,70 +1,47 @@
-# Kifi - Command Line Interface (CLI) Program
+# kifi - Version Control
 
-**Kifi** is a Rust-based command-line interface (CLI) program that provides a simple way to manage and track changes in your projects and repositories. It offers four main commands to streamline your version control workflow.
+**kifi** is a Rust-based command-line interface (CLI) program that provides a simple way to manage and track changes in your projects and repositories. It offers four main commands to streamline your version control workflow.
 
 ## Installation
 
-Before using Kifi, you need to build and install it. Here are the steps to get started:
+Before using kifi, you need to build and install it. Here are the steps to get started:
 
 ### Prerequisites
 
-Before building Kifi, make sure you have Rust installed on your system. You can install Rust by following the instructions at [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install).
+Before building kifi, make sure you have Rust installed on your system. You can install Rust by following the instructions at [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install).
 
-### Build Kifi
+### Install kifi
 
-1. Clone the Kifi repository:
+1. Clone the kifi repository:
 
    ```shell
    git clone https://github.com/Vaurkhorov/kifi
    ```
 
-2. Change into the Kifi directory:
+2. Install kifi using Cargo (Rust's package manager):
 
    ```shell
-   cd kifi
+   cargo install --path kifi
    ```
 
-3. Build Kifi using Cargo (Rust's package manager):
+   This command will compile kifi and create a release version in the "target/release" directory.
 
-   ```shell
-   cargo build --release
-   ```
-
-   This command will compile Kifi and create a release version in the "target/release" directory.
-
-4. To verify that the build was successful, run the following command:
+3. To verify that the build was successful, run the following command:
 
    ```shell
    ./target/release/kifi --version
    ```
 
-   You should see the version information for Kifi.
-
-### Adding Kifi to PATH
-
-To use Kifi conveniently, you should add it to your system's PATH. The following instructions show how to do this:
-
-#### Windows
-
-1. Search for "Environment Variables" in the Start menu and select "Edit the system environment variables."
-
-2. In the "System Properties" window, click the "Environment Variables" button.
-
-3. Under "User variables" or "System variables," find the "Path" variable and click "Edit."
-
-4. Click "New" and add the path to the Kifi executable, typically located in the "target/release" directory.
-
-5. Click "OK" to save the changes.
-
-6. Close any open command prompts and open a new one to use Kifi.
+   You should see the version information for kifi.
+   If you don't, verify whether Cargo's bin is present in the environment path variable.
 
 ## Usage
 
-Kifi provides the following commands:
+kifi provides the following commands:
 
 ### 1. `kifi init`
 
-This command initializes a new repository in the current directory. It sets up a Kifi repository to start tracking files.
+This command initializes a new repository in the current directory. It sets up a kifi repository to start tracking files.
 
 ```shell
 kifi init
