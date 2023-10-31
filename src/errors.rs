@@ -12,6 +12,8 @@ pub enum Error {
     ConvertToString(OsString),
     FileCopy(String, ioError),
     FileNotFoundInCache(String), // String is the path to the file
+    ReservedFilenameNotAvailable(String),
+    PreviewWithoutSnapshots,
 }
 
 impl Error {
@@ -52,7 +54,13 @@ impl Error {
                 eprintln!("Failed to copy {}: {:?}", path, io_error);
             }
             Error::FileNotFoundInCache(file_path) => {
-                eprintln!("File not found in cache: {}", file_path)
+                eprintln!("File not found in cache: {}", file_path);
+            }
+            Error::ReservedFilenameNotAvailable(file_name) => {
+                eprintln!("{} is a reserved file name, and isn't available. Is there a directory with the same name?", file_name);
+            },
+            Error::PreviewWithoutSnapshots => {
+                eprintln!("No previous snapshots exist to preview from.");
             }
         }
     }
