@@ -128,8 +128,8 @@ impl Snapshots {
         self.list.insert(0, snap);
     }
 
-    pub fn get_last(&self) -> &Snapshot {
-        &self.list[0]
+    pub fn get_last(&self) -> Result<&Snapshot, Error> {
+        self.list.get(0).ok_or_else(|| Error::PreviewWithoutSnapshots)
     }
 }
 

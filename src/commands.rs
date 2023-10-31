@@ -111,7 +111,7 @@ pub fn preview(output: &mut dyn Output) -> Result<(), Error> {
     let snapshots_file = fs::read(KIFI_SNAPS).map_err(Error::ReadFile)?;
     let snapshots: Snapshots = from_reader(&snapshots_file[..]).map_err(Error::CBORReader)?;
 
-    let last_snapshot = snapshots.get_last();
+    let last_snapshot = snapshots.get_last()?;
 
     for file in cache.get_keys() {
         if let FileStatus::Tracked = cache.get_status(file).expect("Keys were fetched from the cache and immediately used, so the corresponding value should exist.") {
