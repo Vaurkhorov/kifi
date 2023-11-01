@@ -15,13 +15,14 @@ const KIFI_SNAPS: &str = ".kifi/SNAPSHOTS.kifi";
 /// File containing paths of all files in the repo's root directory, tracked or otherwise
 const KIFI_FILECACHE: &str = ".kifi/FILECACHE.kifi";
 
-use crate::commands::common::kifi_exists;
+use crate::commands::common::{kifi_exists, get_user};
 use crate::commands::init::update_file_cache;
 use crate::commands::preview::{generate_diffs, read_lines};
 use crate::commands::snapshot::{gen_name, snap_file};
 use crate::errors::Error;
 use crate::output::Output;
-use metafiles::{FileCache, FileStatus, Metadata, Snapshots};
+use dirs::config_local_dir;
+use metafiles::{FileCache, FileStatus, Metadata, Snapshots, User};
 use serde_cbor::{from_reader, to_writer};
 use std::env::current_dir;
 use std::fs;
@@ -148,9 +149,10 @@ pub fn snapshot() -> Result<(), Error> {
     let snapshots_file = fs::read(KIFI_SNAPS).map_err(Error::ReadFile)?;
     let mut snapshots: Snapshots = from_reader(&snapshots_file[..]).map_err(Error::CBORReader)?;
 
-    let snap_name = gen_name();
+    let snap_name = gen_name()?;
     let snap_dir = PathBuf::from(".kifi").join(&snap_name);
-    snapshots.new_snap(&snap_name);
+    let user = get_user()?;
+    snapshots.new_snap(&snap_name, &user);
 
     for file in cache.get_tracked_files() {
         snap_file(file, &snap_dir)?;
@@ -158,6 +160,20 @@ pub fn snapshot() -> Result<(), Error> {
 
     let snapshots_file = fs::File::create(KIFI_SNAPS).map_err(Error::CreateFile)?;
     to_writer(snapshots_file, &snapshots).map_err(Error::CBORWriter)?;
+
+    Ok(())
+}
+
+/// Register a user, to reflect them as the author in later commits
+pub fn register(name: &String, email: &String) -> Result<(), Error> {
+    let user = User::new(name, email)?;
+
+    let mut config = config_local_dir().ok_or_else(|| Error::InvalidConfigDir)?;
+    config.push("kifi");
+    fs::create_dir_all(&config).map_err(Error::CreateDirectory)?;
+    config.push(".kificonfig");
+    let config_file = fs::File::create(config).map_err(Error::CreateFile)?;
+    to_writer(config_file, &user).map_err(Error::CBORWriter)?;
 
     Ok(())
 }

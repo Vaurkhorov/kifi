@@ -28,6 +28,8 @@ enum Commands {
     #[cfg(debug_assertions)]
     /// prints contents of metadata files
     Debug,
+    /// registers user name and email
+    Register { username: String, email: String },
 }
 
 fn main() {
@@ -42,6 +44,7 @@ fn main() {
         Some(Commands::Klick) => commands::snapshot(),
         #[cfg(debug_assertions)]
         Some(Commands::Debug) => commands::debug_meta(&mut output),
+        Some(Commands::Register { username, email }) => commands::register(username, email),
         None => {
             // This will not execute as long as the flag 'arg_required_else_help' is set to 'true'.
             unreachable!();
