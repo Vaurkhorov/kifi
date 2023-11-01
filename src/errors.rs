@@ -15,6 +15,9 @@ pub enum Error {
     FileNotFoundInCache(PathBuf), // String is the path to the file
     ReservedFilenameNotAvailable(String),
     PreviewWithoutSnapshots,
+    InvalidEmail,
+    InvalidConfigDir,
+    UserNotRegistered,
 }
 
 impl Error {
@@ -64,6 +67,16 @@ impl Error {
             }
             Error::PreviewWithoutSnapshots => {
                 eprintln!("No previous snapshots exist to preview from.");
+            }
+            Error::InvalidEmail => {
+                eprintln!("Invalid email provided.");
+            }
+            Error::InvalidConfigDir => {
+                eprintln!("Could not fetch config directory.");
+            }
+            Error::UserNotRegistered => {
+                eprintln!("No registered user was found.");
+                eprintln!("Use `kifi register` to register the current user.")
             }
         }
     }

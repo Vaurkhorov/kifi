@@ -3,6 +3,7 @@ use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::SystemTime;
+use regex::Regex;
 
 #[derive(Debug, Serialize, Deserialize)]
 /// Contains information about the repository as a whole
@@ -115,8 +116,8 @@ impl Snapshots {
         Snapshots { list: Vec::new() }
     }
 
-    pub fn new_snap(&mut self, name: &String) {
-        let snap = Snapshot::new(name);
+    pub fn new_snap(&mut self, name: &String, user: &User) {
+        let snap = Snapshot::new(name, user);
         self.list.insert(0, snap);
     }
 
@@ -131,14 +132,48 @@ impl Snapshots {
 /// Stores data about individual snapshots
 pub struct Snapshot {
     pub name: String,
+    pub author: String,
+    pub author_email: String,
     pub created: SystemTime,
 }
 
 impl Snapshot {
-    fn new(name: &String) -> Snapshot {
+    fn new(name: &String, user: &User) -> Snapshot {
         Snapshot {
             name: name.to_owned(),
+            author: user.name().to_owned(),
+            author_email: user.email().to_owned(),
             created: { SystemTime::now() },
         }
+    }
+}
+
+/// Stores information about the user
+#[derive(Serialize, Deserialize)]
+pub struct User {
+    name: String,
+    email: String,
+}
+
+impl User {
+    pub fn new(name: &String, email: &String) -> Result<Self, Error> {
+        if !Self::is_valid(email) {
+            return Err(Error::InvalidEmail)
+        }
+
+        Ok(User { name: name.to_owned(), email: email.to_owned() })
+    }
+
+    fn is_valid(email: &String) -> bool {
+        let re = Regex::new(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").unwrap();
+        re.is_match(email)
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn email(&self) -> &String {
+        &self.email
     }
 }

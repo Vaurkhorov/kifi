@@ -1,4 +1,5 @@
 use crate::Error;
+use crate::commands::common::get_user;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -20,9 +21,8 @@ pub fn snap_file(file_name: &PathBuf, snap_dir: &PathBuf) -> Result<(), Error> {
     }
 }
 
-pub fn gen_name() -> String {
-    // check username and email, if registered, here
-    let user = String::from("testuser");
+pub fn gen_name() -> Result<String, Error> {
+    let user = get_user()?;
     // let email = String::from("test@testing.com");
 
     let current_timestamp = SystemTime::now()
@@ -30,5 +30,5 @@ pub fn gen_name() -> String {
         .expect("Right now is before 1970? Check the system clock.")
         .as_secs();
 
-    format!("{}_{}", user, current_timestamp)
+    Ok(format!("{}_{}", user.name(), current_timestamp))
 }
