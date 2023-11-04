@@ -1,5 +1,5 @@
-use crate::Error;
 use crate::commands::common::get_user;
+use crate::Error;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};

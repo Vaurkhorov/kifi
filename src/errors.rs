@@ -13,7 +13,7 @@ pub enum Error {
     CBORReader(serde_cbor::Error),
     FileCopy(PathBuf, PathBuf, ioError),
     FileNotFoundInCache(PathBuf), // String is the path to the file
-    ReservedFilenameNotAvailable(String),
+    ReservedFilenameNotAvailable(PathBuf),
     PreviewWithoutSnapshots,
     InvalidEmail,
     InvalidConfigDir,
@@ -63,7 +63,7 @@ impl Error {
                 eprintln!("File not found in cache: {}", file_path.display());
             }
             Error::ReservedFilenameNotAvailable(file_name) => {
-                eprintln!("{} is a reserved file name, and isn't available. Is there a directory with the same name?", file_name);
+                eprintln!("{:?} is a reserved file name, and isn't available. Is there a directory with the same name?", file_name);
             }
             Error::PreviewWithoutSnapshots => {
                 eprintln!("No previous snapshots exist to preview from.");

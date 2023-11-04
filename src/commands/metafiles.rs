@@ -1,9 +1,52 @@
 use crate::Error;
+use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::SystemTime;
-use regex::Regex;
+
+/// Directory containing metadata
+const KIFI_DIR: &str = ".kifi";
+/// File containing metadata about the repository itself
+const KIFI_META: &str = "META.kifi";
+/// File containing paths of currently tracked files
+const KIFI_TRACKED: &str = "TRACKED.kifi";
+/// File containing metadata about individual commits
+const KIFI_SNAPS: &str = "SNAPSHOTS.kifi";
+/// File containing paths of all files in the repo's root directory, tracked or otherwise
+const KIFI_FILECACHE: &str = "FILECACHE.kifi";
+
+/// The path to the root folder, and function to access files containing metadata
+pub struct Paths {
+    path: PathBuf,
+}
+
+impl Paths {
+    pub fn from_path_buf(root_directory: PathBuf) -> Result<Self, Error> {
+        Ok(Paths {
+            path: root_directory.canonicalize().map_err(Error::Canonicalize)?,
+        })
+    }
+
+    pub fn root(&self) -> PathBuf {
+        self.path.to_owned()
+    }
+    pub fn kifi(&self) -> PathBuf {
+        self.path.join(KIFI_DIR)
+    }
+    pub fn meta(&self) -> PathBuf {
+        self.kifi().join(KIFI_META)
+    }
+    pub fn tracked(&self) -> PathBuf {
+        self.kifi().join(KIFI_TRACKED)
+    }
+    pub fn snaps(&self) -> PathBuf {
+        self.kifi().join(KIFI_SNAPS)
+    }
+    pub fn filecache(&self) -> PathBuf {
+        self.kifi().join(KIFI_FILECACHE)
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 /// Contains information about the repository as a whole
@@ -158,13 +201,16 @@ pub struct User {
 impl User {
     pub fn new(name: &String, email: &String) -> Result<Self, Error> {
         if !Self::is_valid(email) {
-            return Err(Error::InvalidEmail)
+            return Err(Error::InvalidEmail);
         }
 
-        Ok(User { name: name.to_owned(), email: email.to_owned() })
+        Ok(User {
+            name: name.to_owned(),
+            email: email.to_owned(),
+        })
     }
 
-    fn is_valid(email: &String) -> bool {
+    fn is_valid(email: &str) -> bool {
         let re = Regex::new(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").unwrap();
         re.is_match(email)
     }

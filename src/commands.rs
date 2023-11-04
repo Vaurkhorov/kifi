@@ -4,19 +4,9 @@ mod metafiles;
 mod preview;
 mod snapshot;
 
-/// Directory containing metadata
-const KIFI_DIR: &str = ".kifi";
-/// File containing metadata about the repository itself
-const KIFI_META: &str = ".kifi/META.kifi";
-/// File containing paths of currently tracked files
-const KIFI_TRACKED: &str = ".kifi/TRACKED.kifi";
-/// File containing metadata about individual commits
-const KIFI_SNAPS: &str = ".kifi/SNAPSHOTS.kifi";
-/// File containing paths of all files in the repo's root directory, tracked or otherwise
-const KIFI_FILECACHE: &str = ".kifi/FILECACHE.kifi";
-
-use crate::commands::common::{kifi_exists, get_user};
+use crate::commands::common::{get_kifi, get_user};
 use crate::commands::init::update_file_cache;
+use crate::commands::metafiles::Paths;
 use crate::commands::preview::{generate_diffs, read_lines};
 use crate::commands::snapshot::{gen_name, snap_file};
 use crate::errors::Error;
@@ -24,25 +14,30 @@ use crate::output::Output;
 use dirs::config_local_dir;
 use metafiles::{FileCache, FileStatus, Metadata, Snapshots, User};
 use serde_cbor::{from_reader, to_writer};
-use std::env::current_dir;
 use std::fs;
 use std::path::PathBuf;
 
 /// Initialises a kifi repo
-pub fn initialise() -> Result<(), Error> {
-    if kifi_exists().is_ok() {
-        fs::remove_dir_all("./.kifi").expect(".kifi was just confirmed to exist already. kifi should have sufficient permissions to remove its contents.");
+pub fn initialise(output: &mut dyn Output) -> Result<(), Error> {
+    let path = match get_kifi() {
+        Ok(path) => {
+            fs::remove_dir_all(path.kifi())
+                .expect(".kifi was just confirmed to exist already. kifi should have sufficient permissions to remove its contents.");
+            output.add_str("Reinitialising kifi");
+            path
+        }
+        Err(Error::KifiNotInitialised) => Paths::from_path_buf(PathBuf::from("."))?,
+        Err(e) => return Err(e),
     };
 
-    fs::create_dir(KIFI_DIR).map_err(Error::CreateDirectory)?;
-    let metadata_file = fs::File::create(KIFI_META).map_err(Error::CreateFile)?;
-    fs::File::create(KIFI_TRACKED).map_err(Error::CreateFile)?;
+    fs::create_dir(path.kifi()).map_err(Error::CreateDirectory)?;
+    let metadata_file = fs::File::create(path.meta()).map_err(Error::CreateFile)?;
+    fs::File::create(path.tracked()).map_err(Error::CreateFile)?;
 
-    let snapshots_file = fs::File::create(KIFI_SNAPS).map_err(Error::CreateFile)?;
+    let snapshots_file = fs::File::create(path.snaps()).map_err(Error::CreateFile)?;
     to_writer(snapshots_file, &Snapshots::new()).map_err(Error::CBORWriter)?;
 
-    let current_directory_path = current_dir().map_err(Error::GetCurrentDirectory)?;
-    let metadata = Metadata::from_pathbuf(current_directory_path)?;
+    let metadata = Metadata::from_pathbuf(path.root())?;
 
     to_writer(metadata_file, &metadata).map_err(Error::CBORWriter)?;
 
@@ -52,10 +47,11 @@ pub fn initialise() -> Result<(), Error> {
 #[cfg(debug_assertions)]
 /// Outputs contents of files from the .kifi directory
 pub fn debug_meta(output: &mut dyn Output) -> Result<(), Error> {
-    kifi_exists()?;
+    let path = get_kifi()?;
+    output.add(format!("{:?}", path.root()));
 
-    let metadata_file = fs::read(KIFI_META).map_err(Error::ReadFile)?;
-    let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
+    let metadata_file = fs::read(path.meta()).map_err(Error::ReadFile)?;
+    let cache_file = fs::read(path.filecache()).map_err(Error::ReadFile)?;
 
     let metadata: Metadata = from_reader(&metadata_file[..]).map_err(Error::CBORReader)?;
     let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
@@ -79,12 +75,12 @@ pub fn debug_meta(output: &mut dyn Output) -> Result<(), Error> {
 
 /// Changes status of file to FileStatus::Tracked, see `metafiles`
 pub fn track(file_name: &String, output: &mut dyn Output) -> Result<(), Error> {
-    kifi_exists()?;
+    let path = get_kifi()?;
     update_file_cache()?;
 
     let file_path = PathBuf::from(file_name);
 
-    let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
+    let cache_file = fs::read(path.filecache()).map_err(Error::ReadFile)?;
     let mut cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
     match cache.change_status(&file_path, FileStatus::Tracked) {
@@ -96,7 +92,7 @@ pub fn track(file_name: &String, output: &mut dyn Output) -> Result<(), Error> {
         }
     };
 
-    let cache_file = fs::File::create(KIFI_FILECACHE).map_err(Error::CreateFile)?;
+    let cache_file = fs::File::create(path.filecache()).map_err(Error::CreateFile)?;
     to_writer(cache_file, &cache).map_err(Error::CBORWriter)?;
 
     Ok(())
@@ -104,13 +100,13 @@ pub fn track(file_name: &String, output: &mut dyn Output) -> Result<(), Error> {
 
 /// Shows diffs
 pub fn preview(output: &mut dyn Output) -> Result<(), Error> {
-    kifi_exists()?;
+    let path = get_kifi()?;
     update_file_cache()?;
 
-    let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
+    let cache_file = fs::read(path.filecache()).map_err(Error::ReadFile)?;
     let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
-    let snapshots_file = fs::read(KIFI_SNAPS).map_err(Error::ReadFile)?;
+    let snapshots_file = fs::read(path.snaps()).map_err(Error::ReadFile)?;
     let snapshots: Snapshots = from_reader(&snapshots_file[..]).map_err(Error::CBORReader)?;
 
     let last_snapshot = snapshots.get_last()?;
@@ -125,7 +121,6 @@ pub fn preview(output: &mut dyn Output) -> Result<(), Error> {
             };
 
             let snapped_file_path = PathBuf::from(".kifi").join(&last_snapshot.name).join(file);
-            // let snapped_file_path = ".kifi\\".to_string() + &last_snapshot.name + "\\" + file;
             let snapped_file = match read_lines(&snapped_file_path) {
                 Ok(v) => v,
                 Err(_) => Vec::new(),
@@ -140,13 +135,13 @@ pub fn preview(output: &mut dyn Output) -> Result<(), Error> {
 
 /// Takes a snapshot
 pub fn snapshot() -> Result<(), Error> {
-    kifi_exists()?;
+    let path = get_kifi()?;
     update_file_cache()?;
 
-    let cache_file = fs::read(KIFI_FILECACHE).map_err(Error::ReadFile)?;
+    let cache_file = fs::read(path.filecache()).map_err(Error::ReadFile)?;
     let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
-    let snapshots_file = fs::read(KIFI_SNAPS).map_err(Error::ReadFile)?;
+    let snapshots_file = fs::read(path.snaps()).map_err(Error::ReadFile)?;
     let mut snapshots: Snapshots = from_reader(&snapshots_file[..]).map_err(Error::CBORReader)?;
 
     let snap_name = gen_name()?;
@@ -158,7 +153,7 @@ pub fn snapshot() -> Result<(), Error> {
         snap_file(file, &snap_dir)?;
     }
 
-    let snapshots_file = fs::File::create(KIFI_SNAPS).map_err(Error::CreateFile)?;
+    let snapshots_file = fs::File::create(path.snaps()).map_err(Error::CreateFile)?;
     to_writer(snapshots_file, &snapshots).map_err(Error::CBORWriter)?;
 
     Ok(())
