@@ -38,7 +38,7 @@ fn main() {
     let mut output = ConsoleOutput::new();
 
     let exit_status: Result<(), Error> = match &cli.command {
-        Some(Commands::Init) => commands::initialise(),
+        Some(Commands::Init) => commands::initialise(&mut output),
         Some(Commands::Track { file_name }) => commands::track(file_name, &mut output),
         Some(Commands::Preview) => commands::preview(&mut output),
         Some(Commands::Klick) => commands::snapshot(),
