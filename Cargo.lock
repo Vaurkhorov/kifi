@@ -194,6 +194,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "glob"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
+
+[[package]]
 name = "half"
 version = "1.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -224,10 +230,11 @@ dependencies = [
 
 [[package]]
 name = "kifi"
-version = "0.4.1-alpha"
+version = "0.4.2-alpha"
 dependencies = [
  "clap",
  "dirs",
+ "glob",
  "regex",
  "serde",
  "serde_cbor",

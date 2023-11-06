@@ -67,7 +67,7 @@ impl Metadata {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub enum FileStatus {
     /// These files are not included in snapshots or previews
     Ignored,
@@ -94,9 +94,9 @@ impl FileCache {
         }
     }
 
-    pub fn add_file(&mut self, file_path: PathBuf) {
+    pub fn add_file(&mut self, file_path: PathBuf, status: FileStatus) {
         self.files.entry(file_path).or_insert(RepoFile {
-            status: FileStatus::Untracked,
+            status,
         });
     }
 
@@ -120,9 +120,12 @@ impl FileCache {
         }
     }
 
-    pub fn change_status(&mut self, file_path: &PathBuf, status: FileStatus) -> Result<(), Error> {
-        // TODO update cache
+    pub fn change_status(&mut self, file_path: &PathBuf, status: FileStatus, force: &bool) -> Result<(), Error> {
         if self.files.contains_key(file_path) {
+            if self.files.get(file_path).expect("file_path has been checked to be present.").status == FileStatus::Ignored && !force {
+                return Err(Error::TrackIgnoredFile(file_path.to_owned()));
+            }
+
             self.files.insert(file_path.to_owned(), RepoFile { status });
             Ok(())
         } else {
@@ -196,21 +199,23 @@ impl Snapshot {
 pub struct User {
     name: String,
     email: String,
+    kignore: Option<PathBuf>,
 }
 
 impl User {
     pub fn new(name: &String, email: &String) -> Result<Self, Error> {
-        if !Self::is_valid(email) {
+        if !Self::is_valid_email(email) {
             return Err(Error::InvalidEmail);
         }
 
         Ok(User {
             name: name.to_owned(),
             email: email.to_owned(),
+            kignore: None,
         })
     }
 
-    fn is_valid(email: &str) -> bool {
+    fn is_valid_email(email: &str) -> bool {
         let re = Regex::new(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$").unwrap();
         re.is_match(email)
     }
@@ -221,5 +226,9 @@ impl User {
 
     pub fn email(&self) -> &String {
         &self.email
+    }
+
+    pub fn kignore(&self) -> &Option<PathBuf> {
+        &self.kignore
     }
 }
