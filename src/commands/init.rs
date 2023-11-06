@@ -1,9 +1,9 @@
 use crate::commands::{get_kifi, FileCache};
 use crate::Error;
+use glob::Pattern;
 use serde_cbor::{from_reader, to_writer};
 use std::fs;
-use std::path::PathBuf;
-use glob::Pattern;
+use std::path::{Path, PathBuf};
 
 use super::common::get_user;
 
@@ -30,7 +30,13 @@ pub fn update_file_cache() -> Result<(), Error> {
         Ok(files) => {
             for file in files {
                 match file {
-                    Ok(f) => get_name_from_fileentries(f, &mut file_list, &old_file_list, &path.root(), &kignore)?,
+                    Ok(f) => get_name_from_fileentries(
+                        f,
+                        &mut file_list,
+                        &old_file_list,
+                        &path.root(),
+                        &kignore,
+                    )?,
                     Err(e) => return Err(Error::ReadFile(e)),
                 }
             }
@@ -49,7 +55,7 @@ pub fn update_file_cache() -> Result<(), Error> {
 /// Get ignore patterns
 fn get_kignore(root: PathBuf) -> Vec<Pattern> {
     let mut kignore: Vec<Pattern> = Vec::new();
-    
+
     if let Ok(local_patterns) = fs::read(root.join(".kignore")) {
         let local_patterns_cow = String::from_utf8_lossy(&local_patterns[..]);
         let local_patterns_strings = local_patterns_cow.lines().map(String::from);
@@ -90,7 +96,9 @@ fn get_name_from_fileentries(
             Ok(files) => {
                 for file in files {
                     match file {
-                        Ok(f) => get_name_from_fileentries(f, file_list, old_file_list, root, kignore)?,
+                        Ok(f) => {
+                            get_name_from_fileentries(f, file_list, old_file_list, root, kignore)?
+                        }
                         Err(e) => return Err(Error::ReadFile(e)),
                     }
                 }
@@ -108,23 +116,24 @@ fn get_name_from_fileentries(
             .to_owned();
 
         if old_file_list.get_keys().contains(&file_path) {
-            file_list.add_file_from_existing(file_path.to_owned(), old_file_list.get_status(file_path).expect("Keys were fetched from the cache and immediately used, so the corresponding value should exist.").to_owned())
+            file_list.add_file_from_existing(file_path.to_owned(), old_file_list.get_status(file_path).expect("Keys were fetched from the cache and immediately used, so the corresponding value should exist.").to_owned());
+        } else if file_is_ignored(file_path, kignore) {
+            file_list.add_file(file_path.to_owned(), super::metafiles::FileStatus::Ignored);
         } else {
-            if file_is_ignored(&file_path, kignore) {
-                file_list.add_file(file_path.to_owned(), super::metafiles::FileStatus::Ignored);
-            } else {
-                file_list.add_file(file_path.to_owned(), super::metafiles::FileStatus::Untracked);
-            }
+            file_list.add_file(
+                file_path.to_owned(),
+                super::metafiles::FileStatus::Untracked,
+            );
         }
     }
 
     Ok(())
 }
 
-fn file_is_ignored(file: &PathBuf, kignore: &Vec<Pattern>) -> bool {
+fn file_is_ignored(file: &Path, kignore: &Vec<Pattern>) -> bool {
     for pattern in kignore {
-        if pattern.matches_path(&file) {
-            return true
+        if pattern.matches_path(file) {
+            return true;
         }
     }
 

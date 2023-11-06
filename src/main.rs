@@ -44,7 +44,9 @@ fn main() {
 
     let exit_status: Result<(), Error> = match &cli.command {
         Some(Commands::Init) => commands::initialise(&mut output),
-        Some(Commands::Track {file_name, forced }) => commands::track(file_name, forced, &mut output),
+        Some(Commands::Track { file_name, forced }) => {
+            commands::track(file_name, forced, &mut output)
+        }
         Some(Commands::Preview) => commands::preview(&mut output),
         Some(Commands::Klick) => commands::snapshot(),
         #[cfg(debug_assertions)]

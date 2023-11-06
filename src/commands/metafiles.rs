@@ -95,9 +95,7 @@ impl FileCache {
     }
 
     pub fn add_file(&mut self, file_path: PathBuf, status: FileStatus) {
-        self.files.entry(file_path).or_insert(RepoFile {
-            status,
-        });
+        self.files.entry(file_path).or_insert(RepoFile { status });
     }
 
     pub fn add_file_from_existing(&mut self, file_path: PathBuf, old_file_status: FileStatus) {
@@ -120,9 +118,21 @@ impl FileCache {
         }
     }
 
-    pub fn change_status(&mut self, file_path: &PathBuf, status: FileStatus, force: &bool) -> Result<(), Error> {
+    pub fn change_status(
+        &mut self,
+        file_path: &PathBuf,
+        status: FileStatus,
+        force: &bool,
+    ) -> Result<(), Error> {
         if self.files.contains_key(file_path) {
-            if self.files.get(file_path).expect("file_path has been checked to be present.").status == FileStatus::Ignored && !force {
+            if self
+                .files
+                .get(file_path)
+                .expect("file_path has been checked to be present.")
+                .status
+                == FileStatus::Ignored
+                && !force
+            {
                 return Err(Error::TrackIgnoredFile(file_path.to_owned()));
             }
 
