@@ -18,6 +18,7 @@ pub enum Error {
     InvalidEmail,
     InvalidConfigDir,
     UserNotRegistered,
+    TrackIgnoredFile(PathBuf),
 }
 
 impl Error {
@@ -76,7 +77,11 @@ impl Error {
             }
             Error::UserNotRegistered => {
                 eprintln!("No registered user was found.");
-                eprintln!("Use `kifi register` to register the current user.")
+                eprintln!("Use `kifi register` to register the current user.");
+            }
+            Error::TrackIgnoredFile(file) => {
+                eprintln!("File {:?} has been ignored.", file);
+                eprintln!("Use -f to force tracking.");
             }
         }
     }

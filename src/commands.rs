@@ -74,7 +74,7 @@ pub fn debug_meta(output: &mut dyn Output) -> Result<(), Error> {
 }
 
 /// Changes status of file to FileStatus::Tracked, see `metafiles`
-pub fn track(file_name: &String, output: &mut dyn Output) -> Result<(), Error> {
+pub fn track(file_name: &String, forced: &bool, output: &mut dyn Output) -> Result<(), Error> {
     let path = get_kifi()?;
     update_file_cache()?;
 
@@ -83,7 +83,7 @@ pub fn track(file_name: &String, output: &mut dyn Output) -> Result<(), Error> {
     let cache_file = fs::read(path.filecache()).map_err(Error::ReadFile)?;
     let mut cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
 
-    match cache.change_status(&file_path, FileStatus::Tracked) {
+    match cache.change_status(&file_path, FileStatus::Tracked, forced) {
         Ok(()) => {
             output.add(format!("Tracking {}", file_path.display()));
         }

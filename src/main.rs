@@ -20,7 +20,12 @@ enum Commands {
     /// initialises a repository
     Init,
     /// tracks the given file
-    Track { file_name: String },
+    Track {
+        file_name: String,
+        #[arg(short = 'f')]
+        /// force tracking ignored files
+        forced: bool,
+    },
     /// shows diffs from the last snapshot
     Preview,
     /// takes a snapshot of tracked files
@@ -39,7 +44,7 @@ fn main() {
 
     let exit_status: Result<(), Error> = match &cli.command {
         Some(Commands::Init) => commands::initialise(&mut output),
-        Some(Commands::Track { file_name }) => commands::track(file_name, &mut output),
+        Some(Commands::Track {file_name, forced }) => commands::track(file_name, forced, &mut output),
         Some(Commands::Preview) => commands::preview(&mut output),
         Some(Commands::Klick) => commands::snapshot(),
         #[cfg(debug_assertions)]
