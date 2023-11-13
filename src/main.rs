@@ -30,6 +30,10 @@ enum Commands {
     Preview,
     /// takes a snapshot of tracked files
     Klick,
+    /// shows previous snapshots
+    Log,
+    /// reverts to a specific snapshot
+    Revert { name: String },
     #[cfg(debug_assertions)]
     /// prints contents of metadata files
     Debug,
@@ -49,6 +53,8 @@ fn main() {
         }
         Some(Commands::Preview) => commands::preview(&mut output),
         Some(Commands::Klick) => commands::snapshot(),
+        Some(Commands::Log) => commands::log(&mut output),
+        Some(Commands::Revert { name }) => commands::revert(&mut output, name.to_owned()),
         #[cfg(debug_assertions)]
         Some(Commands::Debug) => commands::debug_meta(&mut output),
         Some(Commands::Register { username, email }) => commands::register(username, email),

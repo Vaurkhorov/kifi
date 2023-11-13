@@ -161,6 +161,13 @@ impl FileCache {
     }
 }
 
+/// Return type when looking for a snapshot
+pub enum SearchResults {
+    FoundExact(Snapshot),
+    FoundSimilar(Vec<Snapshot>),
+    NotFound,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 /// Stores a list of snapshots
 pub struct Snapshots {
@@ -182,9 +189,37 @@ impl Snapshots {
             .get(0)
             .ok_or_else(|| Error::PreviewWithoutSnapshots)
     }
+
+    pub fn find(self, name: String) -> SearchResults {
+        let mut matches: Vec<Snapshot> = Vec::new();
+
+        for s in &self.list {
+            if s.name == name {
+                return SearchResults::FoundExact(s.clone());
+            } else if s.name.contains(&name) {
+                matches.push(s.clone())
+            }
+        }
+
+        if matches.is_empty() {
+            SearchResults::NotFound
+        } else {
+            SearchResults::FoundSimilar(matches)
+        }
+    }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+impl IntoIterator for Snapshots {
+    type Item = Snapshot;
+    type IntoIter = std::vec::IntoIter<Snapshot>;
+
+    fn into_iter(mut self) -> Self::IntoIter {
+        self.list.sort_by(|a, b| a.created.cmp(&b.created));
+        self.list.into_iter()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 /// Stores data about individual snapshots
 pub struct Snapshot {
     pub name: String,
