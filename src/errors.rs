@@ -1,5 +1,7 @@
+use fs_extra::error::Error as dirError;
 use std::io::Error as ioError;
 use std::path::PathBuf;
+use std::time::SystemTime;
 
 #[derive(Debug)]
 pub enum Error {
@@ -12,6 +14,7 @@ pub enum Error {
     CBORWriter(serde_cbor::Error),
     CBORReader(serde_cbor::Error),
     FileCopy(PathBuf, PathBuf, ioError),
+    DirCopy(PathBuf, PathBuf, dirError),
     FileNotFoundInCache(PathBuf), // String is the path to the file
     ReservedFilenameNotAvailable(PathBuf),
     PreviewWithoutSnapshots,
@@ -19,6 +22,7 @@ pub enum Error {
     InvalidConfigDir,
     UserNotRegistered,
     TrackIgnoredFile(PathBuf),
+    InvalidTime(SystemTime),
 }
 
 impl Error {
@@ -60,6 +64,14 @@ impl Error {
                     io_error
                 );
             }
+            Error::DirCopy(from, to, dir_error) => {
+                eprintln!(
+                    "Failed to copy {} to {}: {:?}",
+                    from.display(),
+                    to.display(),
+                    dir_error
+                );
+            }
             Error::FileNotFoundInCache(file_path) => {
                 eprintln!("File not found in cache: {}", file_path.display());
             }
@@ -82,6 +94,9 @@ impl Error {
             Error::TrackIgnoredFile(file) => {
                 eprintln!("File {:?} has been ignored.", file);
                 eprintln!("Use -f to force tracking.");
+            }
+            Error::InvalidTime(time) => {
+                eprintln!("Could not parse time {:?}.", time);
             }
         }
     }

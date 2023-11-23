@@ -12,6 +12,7 @@ use crate::commands::snapshot::{gen_name, snap_file};
 use crate::errors::Error;
 use crate::output::Output;
 use dirs::config_local_dir;
+use fs_extra::dir;
 use metafiles::{FileCache, FileStatus, Metadata, Snapshots, User};
 use serde_cbor::{from_reader, to_writer};
 use std::fs;
@@ -155,6 +156,85 @@ pub fn snapshot() -> Result<(), Error> {
 
     let snapshots_file = fs::File::create(path.snaps()).map_err(Error::CreateFile)?;
     to_writer(snapshots_file, &snapshots).map_err(Error::CBORWriter)?;
+
+    Ok(())
+}
+
+/// Shows previous commits stored in Snapshots
+pub fn log(output: &mut dyn Output) -> Result<(), Error> {
+    let path = get_kifi()?;
+
+    let snapshots_file = fs::read(path.snaps()).map_err(Error::ReadFile)?;
+    let snapshots: Snapshots = from_reader(&snapshots_file[..]).map_err(Error::CBORReader)?;
+
+    for snap in snapshots.into_iter() {
+        output.add(format!("snapshot {}", snap.name));
+        output.add(format!(
+            "Created by:\n{}\n{}",
+            snap.author, snap.author_email
+        ));
+        output.add(format!(
+            "Created on {} UTC",
+            time::OffsetDateTime::from(snap.created)
+                .format(
+                    &time::format_description::parse(
+                        "[year]-[month]-[day] [hour]:[minute]:[second]"
+                    )
+                    .map_err(|_| Error::InvalidTime(snap.created))?
+                )
+                .map_err(|_| Error::InvalidTime(snap.created))?
+        ));
+        output.add_str("");
+    }
+
+    Ok(())
+}
+
+/// Restore snapshot
+pub fn revert(output: &mut dyn Output, name: String) -> Result<(), Error> {
+    let path = get_kifi()?;
+
+    let snapshots_file = fs::read(path.snaps()).map_err(Error::ReadFile)?;
+    let snapshots: Snapshots = from_reader(&snapshots_file[..]).map_err(Error::CBORReader)?;
+
+    match snapshots.find(name) {
+        metafiles::SearchResults::FoundExact(snapshot) => {
+            let snap_dir = path.kifi().join(snapshot.name);
+
+            for file in fs::read_dir(snap_dir).map_err(Error::GetCurrentDirectory)? {
+                let file = file.map_err(Error::ReadFile)?;
+                if file.metadata().map_err(Error::ReadFile)?.is_dir() {
+                    dir::copy(file.path(), ".", &dir::CopyOptions::new().overwrite(true)).map_err(
+                        |e| Error::DirCopy(file.path(), PathBuf::from(file.file_name()), e),
+                    )?;
+                } else {
+                    fs::copy(file.path(), "file.file_name()").map_err(|e| {
+                        Error::FileCopy(file.path(), PathBuf::from(file.file_name()), e)
+                    })?;
+                }
+            }
+        }
+        metafiles::SearchResults::FoundSimilar(matching_snapshots) => {
+            output.add_str("Snapshot not found. Did you mean one of these?");
+            for snap in matching_snapshots {
+                output.add(format!(
+                    "{} | {} - {} | {}",
+                    snap.name,
+                    snap.author,
+                    snap.author_email,
+                    time::OffsetDateTime::from(snap.created)
+                        .format(
+                            &time::format_description::parse(
+                                "[year]-[month]-[day] [hour]:[minute]:[second]"
+                            )
+                            .map_err(|_| Error::InvalidTime(snap.created))?
+                        )
+                        .map_err(|_| Error::InvalidTime(snap.created))?
+                ));
+            }
+        }
+        metafiles::SearchResults::NotFound => output.add_str("Snapshot not found."),
+    }
 
     Ok(())
 }
