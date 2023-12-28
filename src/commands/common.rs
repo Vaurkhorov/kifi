@@ -6,8 +6,19 @@ use serde_cbor::from_reader;
 use std::{fs, path::PathBuf};
 
 /// Checks if a repository already exists in the current working directory
-pub fn get_kifi() -> Result<Paths, Error> {
-    if fs::read_dir("./.kifi").is_ok() {
+pub fn get_kifi(provided_path: &Option<PathBuf>) -> Result<Paths, Error> {
+    let provided_path = match provided_path {
+        Some(p) => {
+            if p.ends_with("/.kifi") {
+                p.clone()
+            } else {
+                p.join("/.kifi")
+            }
+        }
+        None => PathBuf::from("./.kifi"),
+    };
+
+    if fs::read_dir(provided_path).is_ok() {
         return Paths::from_path_buf(PathBuf::from("."));
     }
 

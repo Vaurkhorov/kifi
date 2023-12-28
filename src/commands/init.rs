@@ -8,8 +8,8 @@ use std::path::{Path, PathBuf};
 use super::common::get_user;
 
 /// Generates a vector of files and stores it
-pub fn update_file_cache() -> Result<(), Error> {
-    let path = get_kifi()?;
+pub fn update_file_cache(provided_path: Option<PathBuf>) -> Result<(), Error> {
+    let path = get_kifi(&provided_path)?;
     let kignore = get_kignore(path.root());
 
     let old_file_list = match fs::metadata(path.filecache()) {

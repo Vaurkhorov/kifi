@@ -47,16 +47,16 @@ fn main() {
     let mut output = ConsoleOutput::new();
 
     let exit_status: Result<(), Error> = match &cli.command {
-        Some(Commands::Init) => commands::initialise(&mut output),
+        Some(Commands::Init) => commands::initialise(&mut output, None),
         Some(Commands::Track { file_name, forced }) => {
-            commands::track(file_name, forced, &mut output)
+            commands::track(file_name, forced, &mut output, None)
         }
-        Some(Commands::Preview) => commands::preview(&mut output),
-        Some(Commands::Klick) => commands::snapshot(),
-        Some(Commands::Log) => commands::log(&mut output),
-        Some(Commands::Revert { name }) => commands::revert(&mut output, name.to_owned()),
+        Some(Commands::Preview) => commands::preview(&mut output, None),
+        Some(Commands::Klick) => commands::snapshot(None),
+        Some(Commands::Log) => commands::log(&mut output, None),
+        Some(Commands::Revert { name }) => commands::revert(&mut output, name.to_owned(), None),
         #[cfg(debug_assertions)]
-        Some(Commands::Debug) => commands::debug_meta(&mut output),
+        Some(Commands::Debug) => commands::debug_meta(&mut output, None),
         Some(Commands::Register { username, email }) => commands::register(username, email),
         None => {
             // This will not execute as long as the flag 'arg_required_else_help' is set to 'true'.
