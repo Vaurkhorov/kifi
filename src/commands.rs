@@ -19,8 +19,8 @@ use std::fs;
 use std::path::PathBuf;
 
 /// Initialises a kifi repo
-pub fn initialise(output: &mut dyn Output) -> Result<(), Error> {
-    let path = match get_kifi() {
+pub fn initialise(output: &mut dyn Output, provided_path: Option<PathBuf>) -> Result<(), Error> {
+    let path = match get_kifi(&provided_path) {
         Ok(path) => {
             fs::remove_dir_all(path.kifi())
                 .expect(".kifi was just confirmed to exist already. kifi should have sufficient permissions to remove its contents.");
@@ -42,13 +42,13 @@ pub fn initialise(output: &mut dyn Output) -> Result<(), Error> {
 
     to_writer(metadata_file, &metadata).map_err(Error::CBORWriter)?;
 
-    update_file_cache()
+    update_file_cache(provided_path)
 }
 
 #[cfg(debug_assertions)]
 /// Outputs contents of files from the .kifi directory
-pub fn debug_meta(output: &mut dyn Output) -> Result<(), Error> {
-    let path = get_kifi()?;
+pub fn debug_meta(output: &mut dyn Output, provided_path: Option<PathBuf>) -> Result<(), Error> {
+    let path = get_kifi(&provided_path)?;
     output.add(format!("{:?}", path.root()));
 
     let metadata_file = fs::read(path.meta()).map_err(Error::ReadFile)?;
@@ -75,9 +75,14 @@ pub fn debug_meta(output: &mut dyn Output) -> Result<(), Error> {
 }
 
 /// Changes status of file to FileStatus::Tracked, see `metafiles`
-pub fn track(file_name: &String, forced: &bool, output: &mut dyn Output) -> Result<(), Error> {
-    let path = get_kifi()?;
-    update_file_cache()?;
+pub fn track(
+    file_name: &String,
+    forced: &bool,
+    output: &mut dyn Output,
+    provided_path: Option<PathBuf>,
+) -> Result<(), Error> {
+    let path = get_kifi(&provided_path)?;
+    update_file_cache(provided_path)?;
 
     let file_path = PathBuf::from(file_name);
 
@@ -100,9 +105,9 @@ pub fn track(file_name: &String, forced: &bool, output: &mut dyn Output) -> Resu
 }
 
 /// Shows diffs
-pub fn preview(output: &mut dyn Output) -> Result<(), Error> {
-    let path = get_kifi()?;
-    update_file_cache()?;
+pub fn preview(output: &mut dyn Output, provided_path: Option<PathBuf>) -> Result<(), Error> {
+    let path = get_kifi(&provided_path)?;
+    update_file_cache(provided_path)?;
 
     let cache_file = fs::read(path.filecache()).map_err(Error::ReadFile)?;
     let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
@@ -135,9 +140,9 @@ pub fn preview(output: &mut dyn Output) -> Result<(), Error> {
 }
 
 /// Takes a snapshot
-pub fn snapshot() -> Result<(), Error> {
-    let path = get_kifi()?;
-    update_file_cache()?;
+pub fn snapshot(provided_path: Option<PathBuf>) -> Result<(), Error> {
+    let path = get_kifi(&provided_path)?;
+    update_file_cache(provided_path)?;
 
     let cache_file = fs::read(path.filecache()).map_err(Error::ReadFile)?;
     let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
@@ -161,8 +166,8 @@ pub fn snapshot() -> Result<(), Error> {
 }
 
 /// Shows previous commits stored in Snapshots
-pub fn log(output: &mut dyn Output) -> Result<(), Error> {
-    let path = get_kifi()?;
+pub fn log(output: &mut dyn Output, provided_path: Option<PathBuf>) -> Result<(), Error> {
+    let path = get_kifi(&provided_path)?;
 
     let snapshots_file = fs::read(path.snaps()).map_err(Error::ReadFile)?;
     let snapshots: Snapshots = from_reader(&snapshots_file[..]).map_err(Error::CBORReader)?;
@@ -191,8 +196,12 @@ pub fn log(output: &mut dyn Output) -> Result<(), Error> {
 }
 
 /// Restore snapshot
-pub fn revert(output: &mut dyn Output, name: String) -> Result<(), Error> {
-    let path = get_kifi()?;
+pub fn revert(
+    output: &mut dyn Output,
+    name: String,
+    provided_path: Option<PathBuf>,
+) -> Result<(), Error> {
+    let path = get_kifi(&provided_path)?;
 
     let snapshots_file = fs::read(path.snaps()).map_err(Error::ReadFile)?;
     let snapshots: Snapshots = from_reader(&snapshots_file[..]).map_err(Error::CBORReader)?;
