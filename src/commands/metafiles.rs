@@ -1,4 +1,4 @@
-use crate::Error;
+use crate::errors::Error;
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;

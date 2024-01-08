@@ -1,6 +1,6 @@
 use super::metafiles::User;
 use crate::commands::metafiles::Paths;
-use crate::Error;
+use crate::errors::Error;
 use dirs::config_local_dir;
 use serde_cbor::from_reader;
 use std::{fs, path::PathBuf};

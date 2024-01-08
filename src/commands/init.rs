@@ -1,5 +1,5 @@
 use crate::commands::{get_kifi, FileCache};
-use crate::Error;
+use crate::errors::Error;
 use glob::Pattern;
 use serde_cbor::{from_reader, to_writer};
 use std::fs;

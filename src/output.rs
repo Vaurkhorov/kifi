@@ -14,6 +14,12 @@ impl ConsoleOutput {
     }
 }
 
+impl Default for ConsoleOutput {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Output for ConsoleOutput {
     fn add(&mut self, output: String) {
         self.output.push(output);
@@ -40,6 +46,13 @@ pub struct DebugOutput {
 impl DebugOutput {
     pub fn new() -> Self {
         DebugOutput { output: Vec::new() }
+    }
+}
+
+#[cfg(test)]
+impl Default for DebugOutput {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
