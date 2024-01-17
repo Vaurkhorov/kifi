@@ -1,7 +1,12 @@
 [package]
 name = "kifi"
-version = "0.4.4-alpha"
+version = "0.4.5-alpha"
+authors = ["Saurav S. Samantaray <sssamantaray77@gmail.com>"]
 edition = "2021"
+description = "A minimal Version Control System"
+readme = "README.MD"
+repository = "https://github.com/Vaurkhorov/kifi"
+license = "MIT OR Apache-2.0"
 
 [lib]
 name = "kifi"
