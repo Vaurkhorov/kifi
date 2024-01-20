@@ -18,11 +18,16 @@ pub fn get_kifi(provided_path: &Option<PathBuf>) -> Result<Paths, Error> {
         None => PathBuf::from("./.kifi"),
     };
 
-    if fs::read_dir(provided_path).is_ok() {
-        return Paths::from_path_buf(PathBuf::from("."));
+    if fs::read_dir(&provided_path).is_ok() {
+        return Paths::from_path_buf(
+            provided_path
+                .parent()
+                .expect("'.kifi' was jooined, and should be able to be removed here.")
+                .to_path_buf(),
+        );
     }
 
-    let mut path = fs::canonicalize(PathBuf::from(".")).map_err(Error::Canonicalize)?;
+    let mut path = fs::canonicalize(provided_path).map_err(Error::Canonicalize)?;
     let mut new_path = path.parent();
 
     while new_path.is_some() {
