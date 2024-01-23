@@ -24,7 +24,9 @@ pub struct Paths {
 impl Paths {
     pub fn from_path_buf(root_directory: PathBuf) -> Result<Self, Error> {
         Ok(Paths {
-            path: root_directory.canonicalize().map_err(Error::Canonicalize)?,
+            path: root_directory
+                .canonicalize()
+                .map_err(|e| Error::Canonicalize(e, root_directory))?,
         })
     }
 
@@ -56,7 +58,9 @@ pub struct Metadata {
 
 impl Metadata {
     pub fn from_pathbuf(path: PathBuf) -> Result<Self, Error> {
-        let canonical_path = path.canonicalize().map_err(Error::Canonicalize)?;
+        let canonical_path = path
+            .canonicalize()
+            .map_err(|e| Error::Canonicalize(e, path))?;
         let name = canonical_path
             .file_name()
             .expect("kifi must be running in a directory, and so it should have a name.");
