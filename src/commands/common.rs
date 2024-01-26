@@ -3,7 +3,10 @@ use crate::commands::metafiles::Paths;
 use crate::errors::Error;
 use dirs::config_local_dir;
 use serde_cbor::from_reader;
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 /// Checks if a repository already exists in the current working directory
 pub fn get_kifi(provided_path: &Option<PathBuf>) -> Result<Paths, Error> {
@@ -27,9 +30,13 @@ pub fn get_kifi(provided_path: &Option<PathBuf>) -> Result<Paths, Error> {
         );
     }
 
-    let mut path =
-        fs::canonicalize(&provided_path).map_err(|e| Error::Canonicalize(e, provided_path))?;
-    let mut new_path = path.parent();
+    let mut path = fs::canonicalize(
+        provided_path
+            .parent()
+            .expect("'.kifi' was joined, and should be able to be removed here."),
+    )
+    .map_err(|e| Error::Canonicalize(e, provided_path))?;
+    let mut new_path = Path::new(&path).parent();
 
     while new_path.is_some() {
         path = new_path

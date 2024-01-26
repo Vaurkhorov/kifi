@@ -1,6 +1,6 @@
 [package]
 name = "kifi"
-version = "0.4.7-alpha"
+version = "0.4.8-alpha"
 authors = ["Saurav S. Samantaray <sssamantaray77@gmail.com>"]
 edition = "2021"
 description = "A minimal Version Control System"
