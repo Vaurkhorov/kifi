@@ -69,6 +69,10 @@ impl Metadata {
             repo_name: name.to_string_lossy().to_string(),
         })
     }
+
+    pub fn name(&self) -> &String {
+        &self.repo_name
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]

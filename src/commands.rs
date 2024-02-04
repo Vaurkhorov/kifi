@@ -45,6 +45,37 @@ pub fn initialise(output: &mut dyn Output, provided_path: Option<PathBuf>) -> Re
     update_file_cache(provided_path)
 }
 
+/// Shows information about a repository
+pub fn meta(output: &mut dyn Output, provided_path: Option<PathBuf>) -> Result<(), Error> {
+    let path = get_kifi(&provided_path)?;
+    output.add(format!("Repository at {}", path.root().display()));
+
+    let metadata_file = fs::read(path.meta()).map_err(Error::ReadFile)?;
+    let cache_file = fs::read(path.filecache()).map_err(Error::ReadFile)?;
+
+    let metadata: Metadata = from_reader(&metadata_file[..]).map_err(Error::CBORReader)?;
+    let cache: FileCache = from_reader(&cache_file[..]).map_err(Error::CBORReader)?;
+
+    output.add(format!("Name: {}", metadata.name()));
+    output.add_str("");
+
+    output.add_str("Files:");
+    let files_in_cache = cache.get_keys();
+    for file in files_in_cache {
+        match cache.get_status(file) {
+            Some(FileStatus::Tracked) => {
+                output.add(format!("{}: Tracked", file.display()));
+            }
+            Some(FileStatus::Untracked) => {
+                output.add(format!("{}: Untracked", file.display()));
+            }
+            _ => {}
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(debug_assertions)]
 /// Outputs contents of files from the .kifi directory
 pub fn debug_meta(output: &mut dyn Output, provided_path: Option<PathBuf>) -> Result<(), Error> {

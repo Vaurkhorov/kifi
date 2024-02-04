@@ -18,6 +18,8 @@ struct Cli {
 enum Commands {
     /// initialises a repository
     Init,
+    /// shows information about the repository
+    Meta,
     /// tracks the given file
     Track {
         file_name: String,
@@ -47,6 +49,7 @@ fn main() {
 
     let exit_status: Result<(), Error> = match &cli.command {
         Some(Commands::Init) => commands::initialise(&mut output, None),
+        Some(Commands::Meta) => commands::meta(&mut output, None),
         Some(Commands::Track { file_name, forced }) => {
             commands::track(file_name, forced, &mut output, None)
         }
