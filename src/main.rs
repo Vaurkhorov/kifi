@@ -3,9 +3,8 @@ mod errors;
 mod output;
 
 use crate::errors::Error;
-use crate::output::ConsoleOutput;
 use clap::{Parser, Subcommand};
-use output::Output;
+use output::{ConsoleOutput, DebugOutput, Output};
 
 #[derive(Parser)]
 #[command(arg_required_else_help = true)]
@@ -70,7 +69,18 @@ fn main() {
             0
         }
         Err(ref e) => {
-            e.handle();
+            let mut output = DebugOutput::new();
+            e.handle(&mut output);
+            match output.print() {
+                Some(error_output) => {
+                    for line in error_output {
+                        eprintln!("{}", line);
+                    }
+                }
+                None => {
+                    eprintln!("An error occurred")
+                }
+            };
             1
         }
     };

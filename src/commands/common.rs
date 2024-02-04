@@ -1,29 +1,42 @@
 use super::metafiles::User;
 use crate::commands::metafiles::Paths;
-use crate::Error;
+use crate::errors::Error;
 use dirs::config_local_dir;
 use serde_cbor::from_reader;
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 /// Checks if a repository already exists in the current working directory
 pub fn get_kifi(provided_path: &Option<PathBuf>) -> Result<Paths, Error> {
     let provided_path = match provided_path {
         Some(p) => {
-            if p.ends_with("/.kifi") {
+            if p.ends_with(".kifi") {
                 p.clone()
             } else {
-                p.join("/.kifi")
+                p.join(".kifi")
             }
         }
         None => PathBuf::from("./.kifi"),
     };
 
-    if fs::read_dir(provided_path).is_ok() {
-        return Paths::from_path_buf(PathBuf::from("."));
+    if fs::read_dir(&provided_path).is_ok() {
+        return Paths::from_path_buf(
+            provided_path
+                .parent()
+                .expect("'.kifi' was joined, and should be able to be removed here.")
+                .to_path_buf(),
+        );
     }
 
-    let mut path = fs::canonicalize(PathBuf::from(".")).map_err(Error::Canonicalize)?;
-    let mut new_path = path.parent();
+    let mut path = fs::canonicalize(
+        provided_path
+            .parent()
+            .expect("'.kifi' was joined, and should be able to be removed here."),
+    )
+    .map_err(|e| Error::Canonicalize(e, provided_path))?;
+    let mut new_path = Path::new(&path).parent();
 
     while new_path.is_some() {
         path = new_path

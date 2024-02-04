@@ -1,5 +1,5 @@
+use crate::errors::Error;
 use crate::output::Output;
-use crate::Error;
 use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
