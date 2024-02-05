@@ -151,13 +151,14 @@ pub fn preview(output: &mut dyn Output, provided_path: Option<PathBuf>) -> Resul
     for file in cache.get_keys() {
         if let FileStatus::Tracked = cache.get_status(file).expect("Keys were fetched from the cache and immediately used, so the corresponding value should exist.") {
             output.add(file.display().to_string());
+            let file = path.root().join(file);
 
-            let current_file = match read_lines(file) {
+            let current_file = match read_lines(&file) {
                 Ok(v) => v,
                 Err(_) => Vec::new(),
             };
 
-            let snapped_file_path = PathBuf::from(".kifi").join(&last_snapshot.name).join(file);
+            let snapped_file_path = path.kifi().join(&last_snapshot.name);
             let snapped_file = match read_lines(&snapped_file_path) {
                 Ok(v) => v,
                 Err(_) => Vec::new(),
