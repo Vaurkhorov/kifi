@@ -184,6 +184,9 @@ pub fn snapshot(provided_path: Option<PathBuf>) -> Result<(), Error> {
 
     let snap_name = gen_name()?;
     let snap_dir = PathBuf::from(".kifi").join(&snap_name);
+
+    fs::create_dir_all(&snap_dir).map_err(Error::CreateDirectory)?;
+
     let user = get_user()?;
     snapshots.new_snap(&snap_name, &user);
 
